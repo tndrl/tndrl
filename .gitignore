@@ -1,0 +1,16 @@
+# Binaries
+/latis
+/latis-unit
+
+# Build outputs
+/bin/
+/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
