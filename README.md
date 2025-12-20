@@ -106,4 +106,4 @@ Or if you prefer acronyms: **L**inked **A**gent **T**ransport & **I**nterconnect
 
 ## License
 
-TBD
+[Apache-2.0](LICENSE)
