@@ -29,9 +29,16 @@ cmdr → connector → unit → [agent]
 - **Pluggable provisioners** — process, container, VM, cloud
 - **Polyglot plugins** — connectors and agent adapters can be any language
 
+## Design Documents
+
+Open design areas and future considerations:
+
+- [Execution Model](./docs/design/execution-model.md) — tools, autonomy, yield points
+- [Policy](./docs/design/policy.md) — authorization, OPA integration (deferred)
+
 ## Status
 
-Early design phase. Documentation exists, code does not yet.
+Early design phase. Documentation and code stubs exist.
 
 ## When Working Here
 
