@@ -64,7 +64,11 @@ go run ./cmd/latis/ -prompt "Hello, World!"
 
 PKI files are stored in `~/.latis/pki/`. See [pkg/pki/README.md](./pkg/pki/README.md) for details.
 
-## Design Documents
+## Documentation
+
+- [Protobuf & buf](./docs/protobuf.md) — schema definitions, code generation, workflow
+
+### Design Documents
 
 Open design areas and future considerations:
 
