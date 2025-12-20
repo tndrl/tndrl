@@ -2,27 +2,32 @@
 package main
 
 import (
-	"context"
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
-	"crypto/x509"
-	"encoding/pem"
 	"flag"
 	"fmt"
 	"io"
 	"log"
-	"math/big"
+	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
 
 	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
+	"github.com/shanemcd/latis/pkg/pki"
 	quictransport "github.com/shanemcd/latis/pkg/transport/quic"
 )
 
 var (
-	addr = flag.String("addr", "localhost:4433", "address to listen on")
+	addr    = flag.String("addr", "localhost:4433", "address to listen on")
+	pkiDir  = flag.String("pki-dir", "", "PKI directory (default: ~/.latis/pki)")
+	caCert  = flag.String("ca-cert", "", "CA certificate path (overrides pki-dir)")
+	caKey   = flag.String("ca-key", "", "CA private key path (for init-pki with BYO CA)")
+	cert    = flag.String("cert", "", "unit certificate path (overrides pki-dir)")
+	key     = flag.String("key", "", "unit private key path (overrides pki-dir)")
+	initPKI = flag.Bool("init-pki", false, "initialize PKI (generate CA + unit cert if missing)")
+	unitID  = flag.String("unit-id", "", "unit ID for certificate identity (default: auto-generated)")
 )
 
 func main() {
@@ -30,10 +35,9 @@ func main() {
 
 	log.Printf("latis-unit starting on %s", *addr)
 
-	// Generate a self-signed TLS certificate for development
-	tlsConfig, err := generateTLSConfig()
+	tlsConfig, err := setupTLS()
 	if err != nil {
-		log.Fatalf("failed to generate TLS config: %v", err)
+		log.Fatalf("failed to setup TLS: %v", err)
 	}
 
 	// Create QUIC listener
@@ -53,6 +57,114 @@ func main() {
 	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
+}
+
+func setupTLS() (*tls.Config, error) {
+	dir := *pkiDir
+	if dir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("get home dir: %w", err)
+		}
+		dir = filepath.Join(home, ".latis", "pki")
+	}
+
+	// Determine paths
+	caCertPath := *caCert
+	caKeyPath := *caKey
+	certPath := *cert
+	keyPath := *key
+
+	if caCertPath == "" {
+		caCertPath = filepath.Join(dir, "ca.crt")
+	}
+	if caKeyPath == "" {
+		caKeyPath = filepath.Join(dir, "ca.key")
+	}
+	if certPath == "" {
+		certPath = filepath.Join(dir, "unit.crt")
+	}
+	if keyPath == "" {
+		keyPath = filepath.Join(dir, "unit.key")
+	}
+
+	// Handle PKI initialization
+	if *initPKI {
+		if err := initializePKI(dir, caCertPath, caKeyPath, certPath, keyPath); err != nil {
+			return nil, fmt.Errorf("initialize PKI: %w", err)
+		}
+	}
+
+	// Load CA
+	ca, err := pki.LoadCA(caCertPath, caKeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("load CA (try --init-pki to generate): %w", err)
+	}
+
+	// Load unit certificate
+	unitCert, err := pki.LoadCert(certPath, keyPath)
+	if err != nil {
+		return nil, fmt.Errorf("load unit cert (try --init-pki to generate): %w", err)
+	}
+
+	// Create mTLS server config
+	return pki.ServerTLSConfig(unitCert, ca)
+}
+
+func initializePKI(dir, caCertPath, caKeyPath, certPath, keyPath string) error {
+	// Ensure directory exists
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return fmt.Errorf("create PKI directory: %w", err)
+	}
+
+	// Check if CA exists
+	var ca *pki.CA
+	var err error
+
+	if pki.CAExists(dir) || (*caCert != "" && *caKey != "") {
+		log.Println("loading existing CA")
+		ca, err = pki.LoadCA(caCertPath, caKeyPath)
+		if err != nil {
+			return fmt.Errorf("load existing CA: %w", err)
+		}
+	} else {
+		log.Println("generating new CA")
+		ca, err = pki.GenerateCA()
+		if err != nil {
+			return fmt.Errorf("generate CA: %w", err)
+		}
+		if err := ca.Save(dir); err != nil {
+			return fmt.Errorf("save CA: %w", err)
+		}
+		log.Printf("CA saved to %s", dir)
+	}
+
+	// Check if unit cert exists
+	if pki.CertExists(certPath, keyPath) {
+		log.Println("unit certificate already exists")
+		return nil
+	}
+
+	// Generate unit ID if not provided
+	id := *unitID
+	if id == "" {
+		id = uuid.New().String()[:8]
+	}
+
+	// Generate unit certificate
+	log.Printf("generating unit certificate (id=%s)", id)
+	identity := pki.UnitIdentity(id)
+	unitCert, err := pki.GenerateCert(ca, identity, true, false) // server only
+	if err != nil {
+		return fmt.Errorf("generate unit cert: %w", err)
+	}
+
+	if err := unitCert.Save(certPath, keyPath); err != nil {
+		return fmt.Errorf("save unit cert: %w", err)
+	}
+	log.Printf("unit certificate saved to %s", certPath)
+
+	return nil
 }
 
 // server implements LatisServiceServer
@@ -133,41 +245,3 @@ func (s *server) Connect(stream latisv1.LatisService_ConnectServer) error {
 		}
 	}
 }
-
-// generateTLSConfig creates a self-signed certificate for development.
-// In production, use proper certificates.
-func generateTLSConfig() (*tls.Config, error) {
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return nil, err
-	}
-
-	template := x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(24 * time.Hour),
-		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-	}
-
-	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
-	if err != nil {
-		return nil, err
-	}
-
-	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
-	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
-
-	cert, err := tls.X509KeyPair(certPEM, keyPEM)
-	if err != nil {
-		return nil, err
-	}
-
-	return &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		NextProtos:   []string{"latis"},
-	}, nil
-}
-
-// Ensure we're using context (for future use)
-var _ = context.Background

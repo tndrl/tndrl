@@ -24,6 +24,7 @@ cmdr → connector → unit → [agent]
 - **Go** for the core (cmdr, unit, connectors) — single binary, easy cross-compilation, good concurrency
 - **gRPC with protobuf** — type-safe, bidirectional streaming, code generation
 - **QUIC transport** — modern, multiplexed, encrypted by default
+- **mTLS everywhere** — mutual TLS with built-in CA, SPIFFE-compatible identities
 - **buf for protobuf tooling** — linting, code generation, no exceptions
 - **Bidirectional connections** — cmdr can dial out, units can dial in
 - **Pluggable provisioners** — process, container, VM, cloud (design phase)
@@ -38,6 +39,7 @@ latis/
 │   └── latis-unit/      # unit daemon
 ├── gen/go/latis/v1/     # generated protobuf/gRPC code
 ├── pkg/
+│   ├── pki/             # CA and certificate management (mTLS)
 │   ├── transport/quic/  # QUIC transport for gRPC
 │   ├── protocol/        # (placeholder)
 │   ├── connector/       # (placeholder)
@@ -50,15 +52,17 @@ latis/
 ## Quickstart
 
 ```bash
-# Terminal 1: Start unit
-go run ./cmd/latis-unit/
+# Terminal 1: Initialize PKI and start unit
+go run ./cmd/latis-unit/ --init-pki
 
-# Terminal 2: Send a prompt
+# Terminal 2: Generate cmdr cert and connect
+go run ./cmd/latis/ --init-pki
+
+# Or send a prompt
 go run ./cmd/latis/ -prompt "Hello, World!"
-
-# Or just ping
-go run ./cmd/latis/
 ```
+
+PKI files are stored in `~/.latis/pki/`. See [pkg/pki/README.md](./pkg/pki/README.md) for details.
 
 ## Design Documents
 

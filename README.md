@@ -72,15 +72,27 @@ Planned:
 ## Quickstart
 
 ```bash
-# Terminal 1: Start unit
-go run ./cmd/latis-unit/
+# Terminal 1: Initialize PKI and start unit
+go run ./cmd/latis-unit/ --init-pki
 
-# Terminal 2: Send a ping
-go run ./cmd/latis/
+# Terminal 2: Generate cmdr cert and send a ping
+go run ./cmd/latis/ --init-pki
 
 # Or send a prompt
 go run ./cmd/latis/ -prompt "Hello, World!"
 ```
+
+## Security
+
+All connections use **mTLS** (mutual TLS) — both sides present and verify certificates.
+
+See **[pkg/pki/](./pkg/pki/)** for details on certificate management.
+
+Key features:
+- **Built-in CA** — Latis generates and manages its own certificate authority
+- **BYO CA** — Bring your own root certificate for enterprise deployments
+- **SPIFFE-compatible** — Certificate identities use SPIFFE URI format for future SPIRE integration
+- **TLS 1.3** — Modern encryption, no legacy protocol support
 
 ## Status
 
