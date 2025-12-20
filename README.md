@@ -58,17 +58,33 @@ Key decisions:
 
 ## Transports
 
-Transports are pluggable. Initial targets:
+Transports are pluggable. See [pkg/transport/](./pkg/transport/) for implementations.
 
+Currently implemented:
+- **[QUIC](./pkg/transport/quic/)**: gRPC over QUIC — multiplexed streams, built-in TLS 1.3, connection migration
+
+Planned:
 - **SSH**: Execute commands on remote hosts
 - **Local**: Direct process communication
 - **Container**: Podman/Docker exec
 - **WebSocket**: Persistent bidirectional connections
-- **HTTP**: Request/response for simpler integrations
+
+## Quickstart
+
+```bash
+# Terminal 1: Start unit
+go run ./cmd/latis-unit/
+
+# Terminal 2: Send a ping
+go run ./cmd/latis/
+
+# Or send a prompt
+go run ./cmd/latis/ -prompt "Hello, World!"
+```
 
 ## Status
 
-Early design phase. Everything is subject to change.
+Core loop working: cmdr ↔ unit over gRPC/QUIC with bidirectional streaming.
 
 ## Name
 
