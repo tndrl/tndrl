@@ -1,0 +1,24 @@
+# buf.gen.yaml - Code generation configuration
+#
+# Generates Go code for:
+#   - Protobuf messages (google.golang.org/protobuf)
+#   - gRPC services (google.golang.org/grpc)
+#
+# Output goes to gen/go/ which is imported by the main module.
+#
+# Usage:
+#   buf generate
+#
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/shanemcd/latis/gen/go
+plugins:
+  - remote: buf.build/protocolbuffers/go
+    out: gen/go
+    opt: paths=source_relative
+  - remote: buf.build/grpc/go
+    out: gen/go
+    opt: paths=source_relative

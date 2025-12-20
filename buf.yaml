@@ -1,0 +1,24 @@
+# buf.yaml - Buf configuration for latis protocol definitions
+#
+# Design Decision: buf over protoc
+#
+# We use buf because:
+#   - Modern tooling with better developer experience
+#   - Built-in linting and breaking change detection
+#   - Simpler dependency management (no manual proto imports)
+#   - Consistent code generation across languages
+#
+# Usage:
+#   buf lint          - Check proto files for style issues
+#   buf generate      - Generate Go code
+#   buf breaking      - Check for breaking changes
+#
+version: v2
+modules:
+  - path: proto
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE
