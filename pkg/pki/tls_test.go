@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"net"
 	"testing"
+	"time"
 )
 
 func TestServerTLSConfig(t *testing.T) {
@@ -230,23 +231,31 @@ func TestMTLSHandshake_WrongCA(t *testing.T) {
 	}
 	defer listener.Close()
 
-	// Server must accept the connection (even if handshake fails)
+	// Server goroutine - accept and attempt handshake
+	serverDone := make(chan struct{})
 	go func() {
+		defer close(serverDone)
 		conn, err := listener.Accept()
 		if err != nil {
 			return
 		}
-		// Try handshake - it will fail
+		defer conn.Close()
+		// Try handshake - it will fail due to client cert not being trusted
 		tlsConn := conn.(*tls.Conn)
 		tlsConn.Handshake()
-		conn.Close()
 	}()
 
-	// Try to connect - should fail
-	conn, err := tls.Dial("tcp", listener.Addr().String(), clientConfig)
+	// Use a dialer with timeout to prevent hanging
+	dialer := &net.Dialer{
+		Timeout: 2 * time.Second,
+	}
+	conn, err := tls.DialWithDialer(dialer, "tcp", listener.Addr().String(), clientConfig)
 	if err == nil {
 		conn.Close()
 		t.Error("Expected handshake to fail with mismatched CAs")
 	}
 	// Error is expected - test passes
+
+	// Wait for server goroutine to clean up
+	<-serverDone
 }

@@ -14,10 +14,10 @@ cmdr → connector → unit → [agent]
 
 | Component | Purpose | Details |
 |-----------|---------|---------|
-| **cmdr** | Human interface, orchestration, provisioning | [cmdr/README.md](./cmdr/README.md) |
-| **connector** | Transport layer (SSH, WebSocket, etc.) | [connector/README.md](./connector/README.md) |
-| **unit** | Agent endpoint daemon | [unit/README.md](./unit/README.md) |
-| **protocol** | Wire format, message types | [protocol/README.md](./protocol/README.md) |
+| **cmdr** | Human interface, orchestration, provisioning | [docs/design/cmdr.md](./docs/design/cmdr.md) |
+| **connector** | Transport layer (SSH, WebSocket, etc.) | [docs/design/connector.md](./docs/design/connector.md) |
+| **unit** | Agent endpoint daemon | [docs/design/unit.md](./docs/design/unit.md) |
+| **protocol** | Wire format, message types | [docs/design/protocol.md](./docs/design/protocol.md) |
 
 ## Key Design Decisions
 
