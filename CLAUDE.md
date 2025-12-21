@@ -4,7 +4,9 @@ Guidance for Claude Code when working in this repository.
 
 ## What is Latis?
 
-A control plane for distributed AI agents. Transport-agnostic, agent-agnostic, pluggable everything.
+A control plane for distributed AI agents built on the [A2A protocol](https://a2a-protocol.org/).
+
+Latis provides orchestration, provisioning, and secure transport (QUIC/mTLS) while using A2A for agent communication semantics. Units are A2A-compatible agents; cmdr is both an orchestrator and an A2A agent itself.
 
 ## Architecture
 
@@ -21,14 +23,12 @@ cmdr → connector → unit → [agent]
 
 ## Key Design Decisions
 
-- **Go** for the core (cmdr, unit, connectors) — single binary, easy cross-compilation, good concurrency
-- **gRPC with protobuf** — type-safe, bidirectional streaming, code generation
-- **QUIC transport** — modern, multiplexed, encrypted by default
+- **A2A protocol alignment** — agent communication follows the [A2A spec](https://a2a-protocol.org/), enabling interop with the broader agent ecosystem
+- **Go** for the core (cmdr, unit) — single binary, easy cross-compilation, good concurrency
+- **QUIC transport** — modern, multiplexed, connection migration
 - **mTLS everywhere** — mutual TLS with built-in CA, SPIFFE-compatible identities
-- **buf for protobuf tooling** — linting, code generation, no exceptions
-- **Bidirectional connections** — cmdr can dial out, units can dial in
+- **Cmdr as orchestrator + agent** — coordinates units internally, exposes A2A externally
 - **Pluggable provisioners** — process, container, VM, cloud (design phase)
-- **Polyglot plugins** — connectors and agent adapters can be any language
 
 ## Code Structure
 
@@ -70,14 +70,15 @@ PKI files are stored in `~/.latis/pki/`. See [pkg/pki/README.md](./pkg/pki/READM
 
 ### Design Documents
 
-Open design areas and future considerations:
-
+- [A2A Alignment](./docs/design/a2a-alignment.md) — adopting A2A protocol, implementation path
 - [Execution Model](./docs/design/execution-model.md) — tools, autonomy, yield points
 - [Policy](./docs/design/policy.md) — authorization, OPA integration (deferred)
 
 ## Status
 
-Core loop working: cmdr ↔ unit over gRPC/QUIC with bidirectional streaming.
+**Current**: Core loop working (cmdr ↔ unit over gRPC/QUIC with mTLS).
+
+**Next**: Align with A2A protocol — adopt a2a-go types, implement AgentExecutor in units.
 
 ## When Working Here
 
