@@ -80,6 +80,16 @@ PKI files are stored in `~/.latis/pki/`. See [pkg/pki/README.md](./pkg/pki/READM
 
 **Next**: Align with A2A protocol — adopt a2a-go types, implement AgentExecutor in units.
 
+## Development Environment
+
+Prefer running commands inside `toolbox` when available. The host system may not have development tools like `go` installed.
+
+```bash
+# Enter toolbox before running go commands
+toolbox run go test ./...
+toolbox run go build ./cmd/...
+```
+
 ## When Working Here
 
 1. Read the component README for context before making changes
