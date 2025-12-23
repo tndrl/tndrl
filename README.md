@@ -169,7 +169,7 @@ Skills:
 Define peers in your config file to use names instead of addresses:
 
 ```yaml
-# examples/config.yaml
+# examples/echo.yaml
 peers:
   - name: local
     addr: localhost:4433
@@ -178,8 +178,8 @@ peers:
 Then use peer names in commands:
 
 ```bash
-latis prompt -c examples/config.yaml local "Hello!"
-latis status -c examples/config.yaml local
+latis prompt -c examples/echo.yaml local "Hello!"
+latis status -c examples/echo.yaml local
 ```
 
 ## Design Principles

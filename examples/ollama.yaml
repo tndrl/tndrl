@@ -1,0 +1,14 @@
+version: v1
+
+llm:
+  provider: ollama
+  model: rnj-1:8b
+  url: http://localhost:11434/v1
+
+pki:
+  dir: ~/.latis/pki
+  init: true
+
+peers:
+  - name: local
+    addr: localhost:4433
