@@ -47,7 +47,7 @@ Units should serve two protocols over separate QUIC streams:
 - [x] Signal handling for graceful shutdown (SIGINT, SIGTERM)
 - [x] Shutdown RPC triggers graceful termination
 
-### Cmdr Multiplexed Transport (PR #12 - open)
+### Cmdr Multiplexed Transport (PR #12 - merged)
 - [x] Refactored `cmd/latis/main.go` to use `MuxDialer`
 - [x] Control gRPC client via `muxDialer.ControlDialer()`
 - [x] `--status` flag for GetStatus RPC
