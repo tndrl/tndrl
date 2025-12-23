@@ -57,7 +57,7 @@ Units should serve two protocols over separate QUIC streams:
 - [x] Integration tests for multiplexed Control stream (Ping, GetStatus, Shutdown)
 - [x] Connection reuse tests for MuxDialer
 
-### Legacy Cleanup (PR #14 - open)
+### Legacy Cleanup (PR #14 - merged)
 - [x] Deleted `pkg/transport/quic/dialer.go` (replaced by mux_dialer)
 - [x] Deleted `pkg/transport/quic/listener.go` (replaced by mux_listener)
 - [x] Deleted `pkg/transport/quic/conn.go` (replaced by stream_conn)
@@ -67,7 +67,7 @@ Units should serve two protocols over separate QUIC streams:
 - [x] Deleted `pkg/connector/` (unused abstraction)
 - [x] Removed legacy LatisService integration tests
 
-### A2A End-to-End (PR #15 - open)
+### A2A End-to-End (PR #15 - merged)
 - [x] A2A executor already wired in unit (from PR #10)
 - [x] Added `--prompt` and `--stream` flags to cmdr
 - [x] A2A client via `muxDialer.A2ADialer()` and `a2aclient.NewGRPCTransport`
@@ -75,6 +75,10 @@ Units should serve two protocols over separate QUIC streams:
 - [x] `doStreamingPrompt()` uses A2A SendStreamingMessage
 - [x] Integration tests: TestA2ASendMessage, TestA2AGetAgentCard, TestA2AMultipleMessages
 - [x] TestBothStreamsWork verifies Control and A2A work independently
+- [x] Fixed shutdown hang with `stopServers()` helper (close listener before GracefulStop)
+- [x] Added cleanup ordering regression tests
+- [x] Added IP SANs (127.0.0.1, ::1) to generated certificates
+- [x] Unit listens on `[::]:4433` by default for dual-stack IPv4/IPv6 support
 
 ## Next Steps
 

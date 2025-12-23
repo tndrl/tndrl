@@ -78,7 +78,7 @@ PKI files are stored in `~/.latis/pki/`. See [pkg/pki/README.md](./pkg/pki/READM
 
 See **[docs/PROJECT.md](./docs/PROJECT.md)** for current progress and next steps.
 
-**Current**: Integrating multiplexed QUIC transport into unit and cmdr.
+**Current**: Multiplexed QUIC transport complete. Next: delete legacy proto, add real agent execution.
 
 ## Development Environment
 
