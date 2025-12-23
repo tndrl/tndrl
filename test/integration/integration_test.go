@@ -115,8 +115,18 @@ func setupMuxTestEnv(t *testing.T) *muxTestEnv {
 	a2aServer := grpc.NewServer()
 	executor := a2aexec.NewExecutor()
 	a2aexec.RegisterWithGRPC(a2aServer, &a2aexec.ServerConfig{
-		Executor:  executor,
-		AgentCard: a2aexec.DefaultAgentCard("test-unit", "Test Unit", listener.Addr().String()),
+		Executor: executor,
+		AgentCard: &a2a.AgentCard{
+			Name:               "test-unit",
+			Description:        "Test Unit",
+			URL:                listener.Addr().String(),
+			PreferredTransport: a2a.TransportProtocolGRPC,
+			DefaultInputModes:  []string{"text"},
+			DefaultOutputModes: []string{"text"},
+			Capabilities: a2a.AgentCapabilities{
+				Streaming: true,
+			},
+		},
 	})
 
 	go func() {

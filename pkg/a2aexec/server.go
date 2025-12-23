@@ -33,26 +33,3 @@ func RegisterWithGRPC(server *grpc.Server, cfg *ServerConfig) {
 	grpcHandler.RegisterWith(server)
 }
 
-// DefaultAgentCard returns a basic AgentCard for a Latis unit.
-func DefaultAgentCard(name, description, url string) *a2a.AgentCard {
-	return &a2a.AgentCard{
-		Name:               name,
-		Description:        description,
-		URL:                url,
-		PreferredTransport: a2a.TransportProtocolGRPC,
-		DefaultInputModes:  []string{"text"},
-		DefaultOutputModes: []string{"text"},
-		Capabilities: a2a.AgentCapabilities{
-			Streaming: true,
-		},
-		Skills: []a2a.AgentSkill{
-			{
-				ID:          "echo",
-				Name:        "Echo",
-				Description: "Echoes back the input message",
-				Tags:        []string{"echo", "test"},
-				Examples:    []string{"Hello, world!"},
-			},
-		},
-	}
-}

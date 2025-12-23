@@ -3,6 +3,7 @@ package a2aexec
 import (
 	"testing"
 
+	"github.com/a2aproject/a2a-go/a2a"
 	"google.golang.org/grpc"
 )
 
@@ -10,8 +11,18 @@ func TestRegisterWithGRPC(t *testing.T) {
 	server := grpc.NewServer()
 
 	cfg := &ServerConfig{
-		Executor:  NewExecutor(),
-		AgentCard: DefaultAgentCard("test-unit", "A test unit", "localhost:4433"),
+		Executor: NewExecutor(),
+		AgentCard: &a2a.AgentCard{
+			Name:               "test-unit",
+			Description:        "A test unit",
+			URL:                "localhost:4433",
+			PreferredTransport: a2a.TransportProtocolGRPC,
+			DefaultInputModes:  []string{"text"},
+			DefaultOutputModes: []string{"text"},
+			Capabilities: a2a.AgentCapabilities{
+				Streaming: true,
+			},
+		},
 	}
 
 	// Should not panic
@@ -37,22 +48,20 @@ func TestRegisterWithGRPC(t *testing.T) {
 	}
 }
 
-func TestDefaultAgentCard(t *testing.T) {
-	card := DefaultAgentCard("my-unit", "My unit description", "localhost:4433")
+func TestRegisterWithGRPC_NilAgentCard(t *testing.T) {
+	server := grpc.NewServer()
 
-	if card.Name != "my-unit" {
-		t.Errorf("expected name %q, got %q", "my-unit", card.Name)
+	cfg := &ServerConfig{
+		Executor:  NewExecutor(),
+		AgentCard: nil, // No agent card provided
 	}
 
-	if card.Description != "My unit description" {
-		t.Errorf("expected description %q, got %q", "My unit description", card.Description)
-	}
+	// Should not panic with nil agent card
+	RegisterWithGRPC(server, cfg)
 
-	if card.URL != "localhost:4433" {
-		t.Errorf("expected URL %q, got %q", "localhost:4433", card.URL)
-	}
-
-	if len(card.Skills) == 0 {
-		t.Error("expected at least one skill")
+	// Verify services were registered
+	info := server.GetServiceInfo()
+	if len(info) == 0 {
+		t.Error("expected at least one service to be registered")
 	}
 }
