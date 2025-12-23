@@ -548,3 +548,81 @@ func TestBothStreamsWork(t *testing.T) {
 
 	t.Log("Both Control and A2A streams work independently")
 }
+
+func TestCleanupDoesNotHang(t *testing.T) {
+	env := setupMuxTestEnv(t)
+
+	// Connect and do some work
+	client, clientCleanup := env.connectControl(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := client.Ping(ctx, &latisv1.PingRequest{
+		Timestamp: time.Now().UnixNano(),
+	})
+	if err != nil {
+		t.Fatalf("Ping: %v", err)
+	}
+
+	// Close client connection
+	clientCleanup()
+
+	// Cleanup should complete within 5 seconds
+	// If listener.Close() isn't called before GracefulStop(), this will hang
+	done := make(chan struct{})
+	go func() {
+		env.cleanup()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		t.Log("Cleanup completed successfully")
+	case <-time.After(5 * time.Second):
+		t.Fatal("Cleanup hung - listener.Close() must be called before GracefulStop()")
+	}
+}
+
+func TestWrongCleanupOrderHangs(t *testing.T) {
+	// This test verifies that calling GracefulStop() BEFORE listener.Close() hangs.
+	// It demonstrates the bug that was in cmd/latis-unit/main.go.
+
+	ca, _ := pki.GenerateCA()
+	serverCert, _ := pki.GenerateCert(ca, pki.UnitIdentity("test"), true, false)
+	serverTLS, _ := pki.ServerTLSConfig(serverCert, ca)
+
+	listener, err := quictransport.ListenMux("127.0.0.1:0", serverTLS, nil)
+	if err != nil {
+		t.Fatalf("ListenMux: %v", err)
+	}
+
+	controlServer := grpc.NewServer()
+	latisv1.RegisterControlServiceServer(controlServer, &testControlServer{
+		identity:   "test",
+		shutdownCh: make(chan struct{}, 1),
+		startTime:  time.Now(),
+	})
+
+	go controlServer.Serve(listener.ControlListener())
+
+	// Wait for server to start accepting
+	time.Sleep(50 * time.Millisecond)
+
+	// Try the WRONG cleanup order (GracefulStop before listener.Close)
+	done := make(chan struct{})
+	go func() {
+		controlServer.GracefulStop() // This will hang!
+		listener.Close()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		t.Fatal("Expected wrong cleanup order to hang, but it completed")
+	case <-time.After(1 * time.Second):
+		// Force cleanup - must close listener first to unblock GracefulStop
+		listener.Close()
+		<-done // Wait for the goroutine to finish
+	}
+}

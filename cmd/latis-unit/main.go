@@ -88,9 +88,10 @@ func (u *Unit) Run() error {
 	go func() {
 		defer u.wg.Done()
 		if err := u.controlServer.Serve(u.listener.ControlListener()); err != nil {
+			// Ignore errors during shutdown
 			select {
+			case <-u.ctx.Done():
 			case errChan <- fmt.Errorf("control server: %w", err):
-			default:
 			}
 		}
 	}()
@@ -100,9 +101,10 @@ func (u *Unit) Run() error {
 	go func() {
 		defer u.wg.Done()
 		if err := u.a2aServer.Serve(u.listener.A2AListener()); err != nil {
+			// Ignore errors during shutdown
 			select {
+			case <-u.ctx.Done():
 			case errChan <- fmt.Errorf("a2a server: %w", err):
-			default:
 			}
 		}
 	}()
@@ -118,38 +120,45 @@ func (u *Unit) Run() error {
 	return nil
 }
 
-// triggerShutdown initiates graceful shutdown.
-func (u *Unit) triggerShutdown(graceful bool, timeout time.Duration, reason string) {
-	log.Printf("shutdown requested: graceful=%v, timeout=%v, reason=%q", graceful, timeout, reason)
-
-	u.state.SetDraining()
-
+// stopServers closes the listener and stops gRPC servers.
+// The listener must be closed first to unblock Accept() calls in Serve(),
+// otherwise GracefulStop() will deadlock waiting for Serve() to return.
+func (u *Unit) stopServers(graceful bool) {
+	// Cancel context first so Serve() goroutines know shutdown is intentional
+	u.cancel()
+	u.listener.Close()
 	if graceful {
-		// Create timeout context if specified
-		if timeout > 0 {
-			go func() {
-				time.Sleep(timeout)
-				log.Println("graceful shutdown timeout exceeded, forcing stop")
-				u.controlServer.Stop()
-				u.a2aServer.Stop()
-			}()
-		}
 		u.controlServer.GracefulStop()
 		u.a2aServer.GracefulStop()
 	} else {
 		u.controlServer.Stop()
 		u.a2aServer.Stop()
 	}
+}
 
+// triggerShutdown initiates graceful shutdown.
+func (u *Unit) triggerShutdown(graceful bool, timeout time.Duration, reason string) {
+	log.Printf("shutdown requested: graceful=%v, timeout=%v, reason=%q", graceful, timeout, reason)
+
+	u.state.SetDraining()
+
+	if graceful && timeout > 0 {
+		go func() {
+			time.Sleep(timeout)
+			log.Println("graceful shutdown timeout exceeded, forcing stop")
+			u.controlServer.Stop()
+			u.a2aServer.Stop()
+		}()
+	}
+
+	u.stopServers(graceful)
 	u.state.SetStopped()
-	u.cancel()
 }
 
 // Shutdown gracefully shuts down the unit.
 func (u *Unit) Shutdown() {
 	u.triggerShutdown(true, 30*time.Second, "signal")
 	u.wg.Wait()
-	u.listener.Close()
 }
 
 func main() {
