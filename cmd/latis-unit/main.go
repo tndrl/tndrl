@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	addr    = flag.String("addr", "localhost:4433", "address to listen on")
+	addr    = flag.String("addr", "[::]:4433", "address to listen on")
 	pkiDir  = flag.String("pki-dir", "", "PKI directory (default: ~/.latis/pki)")
 	caCert  = flag.String("ca-cert", "", "CA certificate path (overrides pki-dir)")
 	caKey   = flag.String("ca-key", "", "CA private key path (for init-pki with BYO CA)")
