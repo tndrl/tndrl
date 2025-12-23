@@ -47,26 +47,28 @@ Units should serve two protocols over separate QUIC streams:
 - [x] Signal handling for graceful shutdown (SIGINT, SIGTERM)
 - [x] Shutdown RPC triggers graceful termination
 
+### Cmdr Multiplexed Transport (PR #12 - open)
+- [x] Refactored `cmd/latis/main.go` to use `MuxDialer`
+- [x] Control gRPC client via `muxDialer.ControlDialer()`
+- [x] `--status` flag for GetStatus RPC
+- [x] `--shutdown` flag for Shutdown RPC
+- [x] Default ping via ControlService.Ping
+- [x] Removed old LatisService bidirectional stream dependency
+
 ## Next Steps
 
-1. **Update cmdr to use multiplexed dialer**
-   - Use `MuxDialer` for connection management
-   - Create separate gRPC clients for Control and A2A
-   - Health checks via Control stream
-   - Agent interaction via A2A stream
-
-2. **Integration tests for multiplexed transport**
+1. **Integration tests for multiplexed transport**
    - Test both streams work independently
    - Test connection reuse across stream types
    - Test graceful shutdown via Control stream
 
-3. **Cleanup legacy transport code**
+2. **Cleanup legacy transport code**
    - Delete `pkg/transport/quic/dialer.go` (single-stream, replaced by mux_dialer)
    - Delete `pkg/transport/quic/listener.go` (single-stream, replaced by mux_listener)
    - Delete `pkg/transport/quic/conn.go` (replaced by stream_conn)
    - Update `pkg/transport/quic/README.md` for multiplexed API
 
-4. **Remove unused interface packages**
+3. **Remove unused interface packages**
    - Delete `pkg/dialer/` (interface not implemented by QUIC transport)
    - Delete `pkg/listener/` (interface not implemented by QUIC transport)
    - Delete `pkg/connector/` (unused abstraction)
