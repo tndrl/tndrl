@@ -57,18 +57,25 @@ Units should serve two protocols over separate QUIC streams:
 - [x] Integration tests for multiplexed Control stream (Ping, GetStatus, Shutdown)
 - [x] Connection reuse tests for MuxDialer
 
+### Legacy Cleanup (PR #14 - open)
+- [x] Deleted `pkg/transport/quic/dialer.go` (replaced by mux_dialer)
+- [x] Deleted `pkg/transport/quic/listener.go` (replaced by mux_listener)
+- [x] Deleted `pkg/transport/quic/conn.go` (replaced by stream_conn)
+- [x] Updated `pkg/transport/quic/README.md` for multiplexed API
+- [x] Deleted `pkg/dialer/` (unused interface)
+- [x] Deleted `pkg/listener/` (unused interface)
+- [x] Deleted `pkg/connector/` (unused abstraction)
+- [x] Removed legacy LatisService integration tests
+
 ## Next Steps
 
-1. **Cleanup legacy transport code**
-   - Delete `pkg/transport/quic/dialer.go` (single-stream, replaced by mux_dialer)
-   - Delete `pkg/transport/quic/listener.go` (single-stream, replaced by mux_listener)
-   - Delete `pkg/transport/quic/conn.go` (replaced by stream_conn)
-   - Update `pkg/transport/quic/README.md` for multiplexed API
+1. **Wire A2A stream to unit**
+   - Register A2A executor with A2A gRPC server
+   - Serve on `listener.A2AListener()`
 
-2. **Remove unused interface packages**
-   - Delete `pkg/dialer/` (interface not implemented by QUIC transport)
-   - Delete `pkg/listener/` (interface not implemented by QUIC transport)
-   - Delete `pkg/connector/` (unused abstraction)
+2. **Add A2A client to cmdr**
+   - Use `muxDialer.A2ADialer()` for A2A connection
+   - Implement `--prompt` flag using A2A SendMessage
 
 ## Architecture
 

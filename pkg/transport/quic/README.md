@@ -1,6 +1,6 @@
 # QUIC Transport
 
-Adapters that allow gRPC to run over QUIC.
+Multiplexed QUIC transport for gRPC with typed streams.
 
 ## Why QUIC?
 
@@ -9,58 +9,78 @@ Adapters that allow gRPC to run over QUIC.
 - **Connection migration** — survives network changes
 - **Faster handshake** — 0-RTT in many cases
 
-## How It Works
+## Architecture
 
-gRPC expects `net.Listener` (server) and `net.Conn` (client). This package wraps quic-go to provide these interfaces:
+Latis uses multiplexed QUIC streams to separate Control and A2A protocols:
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                      gRPC                           │
-│            (expects net.Listener/net.Conn)          │
-├─────────────────────────────────────────────────────┤
-│                   This Package                      │
-│  ┌─────────────────┐    ┌─────────────────────────┐ │
-│  │ Listener        │    │ Conn                    │ │
-│  │ wraps           │    │ wraps quic.Stream       │ │
-│  │ quic.Listener   │    │ as net.Conn             │ │
-│  └─────────────────┘    └─────────────────────────┘ │
-├─────────────────────────────────────────────────────┤
-│                    quic-go                          │
-└─────────────────────────────────────────────────────┘
+QUIC Connection
+│
+├── Stream (type=0x01): Control
+│   └── gRPC ControlService (Ping, GetStatus, Shutdown)
+│
+└── Stream (type=0x02): A2A
+    └── gRPC a2a.v1.A2AService
 ```
+
+Each stream type gets its own gRPC server/client, providing protocol isolation.
 
 ## Usage
 
-### Server
+### Server (MuxListener)
 
 ```go
 import quictransport "github.com/shanemcd/latis/pkg/transport/quic"
 
-listener, err := quictransport.Listen(addr, tlsConfig, nil)
+// Start multiplexed listener
+listener, err := quictransport.ListenMux(addr, tlsConfig, nil)
 if err != nil {
     log.Fatal(err)
 }
+defer listener.Close()
 
-grpcServer := grpc.NewServer()
-grpcServer.Serve(listener)
+// Serve Control protocol on Control streams
+controlServer := grpc.NewServer()
+latisv1.RegisterControlServiceServer(controlServer, controlHandler)
+go controlServer.Serve(listener.ControlListener())
+
+// Serve A2A protocol on A2A streams
+a2aServer := grpc.NewServer()
+a2a.RegisterA2AServiceServer(a2aServer, a2aHandler)
+go a2aServer.Serve(listener.A2AListener())
 ```
 
-### Client
+### Client (MuxDialer)
 
 ```go
 import quictransport "github.com/shanemcd/latis/pkg/transport/quic"
 
-dialer := quictransport.NewDialer(tlsConfig, nil)
+// Create multiplexed dialer (reuses QUIC connections)
+muxDialer := quictransport.NewMuxDialer(tlsConfig, nil)
+defer muxDialer.Close()
 
-conn, err := grpc.NewClient(
+// Connect to Control service
+controlConn, err := grpc.NewClient(
     addr,
-    grpc.WithContextDialer(dialer),
+    grpc.WithContextDialer(muxDialer.ControlDialer()),
     grpc.WithTransportCredentials(insecure.NewCredentials()),
 )
+controlClient := latisv1.NewControlServiceClient(controlConn)
+
+// Connect to A2A service (reuses same QUIC connection)
+a2aConn, err := grpc.NewClient(
+    addr,
+    grpc.WithContextDialer(muxDialer.A2ADialer()),
+    grpc.WithTransportCredentials(insecure.NewCredentials()),
+)
+a2aClient := a2a.NewA2AServiceClient(a2aConn)
 ```
 
 ## Files
 
-- `listener.go` — `Listener` wraps `quic.Listener` as `net.Listener`
-- `conn.go` — `Conn` wraps `quic.Stream` as `net.Conn`
-- `dialer.go` — `Dial` and `NewDialer` for client connections
+- `stream_type.go` — StreamType constants (Control=0x01, A2A=0x02)
+- `stream_conn.go` — Wraps QUIC stream as net.Conn
+- `mux.go` — MuxConn for typed stream open/accept
+- `mux_listener.go` — Routes streams to type-specific listeners
+- `mux_dialer.go` — Connection pooling, typed stream dialers
+- `mux_test.go` — Tests for routing and connection reuse
