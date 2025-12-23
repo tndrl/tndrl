@@ -4,11 +4,9 @@ Current focus and progress for Latis development.
 
 ## Current Objective
 
-**Make units A2A-compatible with multiplexed QUIC transport**
+**Add real agent execution**
 
-Units should serve two protocols over separate QUIC streams:
-- **Control stream** (type=0x01): Lifecycle, health checks via `ControlService`
-- **A2A stream** (type=0x02): Agent communication via `a2a.v1.A2AService`
+Replace echo handler with actual LLM integration and tool execution framework.
 
 ## Completed
 
@@ -84,25 +82,58 @@ Units should serve two protocols over separate QUIC streams:
 - [x] Deleted `proto/latis/v1/latis.proto` (LatisService no longer used)
 - [x] Deleted generated `latis.pb.go` and `latis_grpc.pb.go`
 
+### Unified Binary with Peer Discovery
+- [x] Merged `latis` (cmdr) and `latis-unit` into single `latis` binary
+- [x] Kong CLI framework with subcommands (serve, ping, status, prompt, discover, shutdown)
+- [x] Two-pass config pattern: CLI flags > env vars > config file > defaults
+- [x] Versioned config schema (v1)
+- [x] Peer-to-peer architecture (any node can serve and connect)
+- [x] Static peer configuration in config file
+- [x] AgentCard discovery via `latis discover`
+- [x] Pluggable LLM providers (echo, ollama)
+- [x] Deleted `cmd/latis-unit/` (merged into `cmd/latis/`)
+- [x] Updated README.md, CLAUDE.md with new architecture
+- [x] Created docs/configuration.md and docs/cli.md
+
 ## Next Steps
 
 1. **Add real agent execution**
    - Replace echo handler with actual LLM integration
    - Tool execution framework
 
+2. **Dynamic peer discovery**
+   - DNS SRV records
+   - Multicast/broadcast discovery
+
 ## Architecture
 
 ```
-QUIC Connection (cmdr ↔ unit)
+┌─────────────────────────────────────────────────────────────┐
+│                         latis node                          │
+│                                                             │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────┐ │
+│  │   A2A       │    │   Control   │    │      LLM        │ │
+│  │   Server    │    │   Server    │    │    Provider     │ │
+│  └─────────────┘    └─────────────┘    └─────────────────┘ │
+│         │                  │                    │          │
+│         └──────────────────┼────────────────────┘          │
+│                            │                               │
+│                    ┌───────┴───────┐                       │
+│                    │  QUIC/mTLS    │                       │
+│                    └───────────────┘                       │
+└─────────────────────────────────────────────────────────────┘
+
+QUIC Connection (peer ↔ peer)
 │
 ├── Stream (type=0x01): Control
 │   └── gRPC ControlService
 │       ├── Ping — health check, latency measurement
-│       ├── GetStatus — unit state, active tasks
+│       ├── GetStatus — node state, active tasks
 │       └── Shutdown — graceful termination
 │
 └── Stream (type=0x02): A2A
     └── gRPC a2a.v1.A2AService
+        ├── GetAgentCard — discover capabilities
         ├── SendMessage — send prompt, get response
         ├── SendStreamingMessage — streaming response
         ├── GetTask — query task status

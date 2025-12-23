@@ -1,102 +1,186 @@
 # Latis
 
-A control plane for distributed AI agents.
+A control plane for distributed AI agents built on the [A2A protocol](https://a2a-protocol.org/).
 
 Latis provides a unified interface for orchestrating AI agents running across multiple machines, containers, and environments. It's transport-agnostic, agent-agnostic, and designed to scale from a single local agent to coordinated fleets.
-
-## Vision
-
-```
-latis connect prod-server
-latis session new --transport ssh://gpu-box
-latis prompt "analyze the deployment logs"
-latis coordinate task-123 --agents prod-1,prod-2,dev-local
-```
-
-## Architecture
-
-```
-┌──────────────────┐
-│      cmdr        │  ← CLI + orchestration brain
-└────────┬─────────┘
-         │
-    ┌────┴────┐
-    │connector│  ← transport plugins (ssh, ws, local, etc.)
-    └────┬────┘
-         │
-┌────────┴─────────┐
-│       unit       │  ← agent endpoint (runs on remote/local)
-└──────────────────┘
-```
-
-### Components
-
-- **[cmdr](./cmdr/)** — The control plane. CLI interface, orchestration, session management, agent coordination. This is what users interact with.
-
-- **[connector](./connector/)** — Transport abstraction layer. Pluggable modules that know how to move bytes between cmdr and units. SSH, WebSocket, local process, container exec — each is a connector plugin.
-
-- **[unit](./unit/)** — The endpoint daemon. Runs wherever agents live. Receives protocol messages, executes work (wrapping any underlying AI agent), streams responses back. Lightweight and embeddable.
-
-- **[protocol](./protocol/)** — The wire protocol. Protobuf schemas for type safety, length-prefixed framing for transport flexibility. Fully multiplexed and async.
-
-## Design Principles
-
-- **Transport agnostic**: SSH today, WebSocket tomorrow, carrier pigeon if you write the plugin
-- **Agent agnostic**: No opinions on what runs at the endpoints
-- **Protocol-first**: A well-defined contract that any language can implement
-- **Pluggable everything**: Transports, agents, authentication, storage
-
-## Core Protocol
-
-See **[protocol/](./protocol/)** for full details.
-
-Key decisions:
-- **Protobuf schemas** for type safety and code generation
-- **Length-prefixed framing** (not HTTP/2) so it works over any byte stream
-- **Fully multiplexed** — messages have IDs, either side can send anytime, control messages interleave with data
-- **gRPC upgrade path** for transports that support it (WebSocket, TCP, QUIC)
-
-## Transports
-
-Transports are pluggable. See [pkg/transport/](./pkg/transport/) for implementations.
-
-Currently implemented:
-- **[QUIC](./pkg/transport/quic/)**: gRPC over QUIC — multiplexed streams, built-in TLS 1.3, connection migration
-
-Planned:
-- **SSH**: Execute commands on remote hosts
-- **Local**: Direct process communication
-- **Container**: Podman/Docker exec
-- **WebSocket**: Persistent bidirectional connections
 
 ## Quickstart
 
 ```bash
-# Terminal 1: Initialize PKI and start unit
-go run ./cmd/latis-unit/ --init-pki
+# Terminal 1: Start a node as a daemon
+latis serve --pki-init
 
-# Terminal 2: Generate cmdr cert and send a ping
-go run ./cmd/latis/ --init-pki
+# Terminal 2: Interact with the node
+latis ping localhost:4433
+latis status localhost:4433
+latis prompt localhost:4433 "Hello, what can you do?"
+latis discover localhost:4433
+```
 
-# Or send a prompt
-go run ./cmd/latis/ -prompt "Hello, World!"
+## Architecture
+
+Latis uses a **peer-to-peer** model where any node can both serve requests and connect to other nodes.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         latis node                          │
+│                                                             │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────┐ │
+│  │   A2A       │    │   Control   │    │      LLM        │ │
+│  │   Server    │    │   Server    │    │    Provider     │ │
+│  └─────────────┘    └─────────────┘    └─────────────────┘ │
+│         │                  │                    │          │
+│         └──────────────────┼────────────────────┘          │
+│                            │                               │
+│                    ┌───────┴───────┐                       │
+│                    │  QUIC/mTLS    │                       │
+│                    └───────────────┘                       │
+└─────────────────────────────────────────────────────────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │   Other Nodes   │
+                    │   (peers)       │
+                    └─────────────────┘
+```
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `latis serve` | Run as daemon, listen for connections |
+| `latis ping <peer>` | Ping a peer node |
+| `latis status <peer>` | Get peer status |
+| `latis prompt <peer> <message>` | Send prompt via A2A |
+| `latis discover <peer>` | Fetch peer's AgentCard (capabilities) |
+| `latis shutdown <peer>` | Request peer shutdown |
+
+All commands support `--help` for detailed options.
+
+## Configuration
+
+Latis uses a unified configuration system where CLI flags, environment variables, and config files all derive from the same schema.
+
+**Precedence**: CLI flags > environment variables > config file > defaults
+
+### Example Config File
+
+```yaml
+version: v1
+
+server:
+  addr: "[::]:4433"
+
+agent:
+  name: my-agent
+  description: "AI assistant for code review"
+  streaming: true
+  skills:
+    - id: review
+      name: Code Review
+      description: "Review code for issues and improvements"
+      tags: [code, review]
+
+llm:
+  provider: ollama
+  model: llama3.2
+  url: http://localhost:11434/v1
+
+pki:
+  dir: ~/.latis/pki
+  init: true
+
+peers:
+  - name: backend
+    addr: backend.local:4433
+```
+
+### Using Config Files
+
+```bash
+# Use a config file
+latis serve -c config.yaml
+
+# Override config with CLI flags
+latis serve -c config.yaml --llm-model=mistral
+
+# Use environment variables
+LATIS_LLM_PROVIDER=ollama latis serve
+```
+
+## LLM Providers
+
+Latis supports pluggable LLM providers:
+
+| Provider | Description |
+|----------|-------------|
+| `echo` | Default, echoes input (for testing) |
+| `ollama` | Connects to Ollama via OpenAI-compatible API |
+
+```bash
+# Start with Ollama
+latis serve --llm-provider=ollama --llm-model=llama3.2
+
+# With custom URL
+latis serve --llm-provider=ollama --llm-model=llama3.2 --llm-url=http://ollama:11434/v1
 ```
 
 ## Security
 
 All connections use **mTLS** (mutual TLS) — both sides present and verify certificates.
 
-See **[pkg/pki/](./pkg/pki/)** for details on certificate management.
-
 Key features:
 - **Built-in CA** — Latis generates and manages its own certificate authority
 - **BYO CA** — Bring your own root certificate for enterprise deployments
-- **SPIFFE-compatible** — Certificate identities use SPIFFE URI format for future SPIRE integration
-- **TLS 1.3** — Modern encryption, no legacy protocol support
+- **SPIFFE-compatible** — Certificate identities use SPIFFE URI format
+- **TLS 1.3** — Modern encryption via QUIC
 
-## Status
+```bash
+# Initialize PKI (creates CA + node certificate)
+latis serve --pki-init
 
-Core loop working: cmdr ↔ unit over gRPC/QUIC with bidirectional streaming.
+# Certificates are stored in ~/.latis/pki/
+```
+
+## Peer Discovery
+
+Nodes can discover each other's capabilities via the A2A AgentCard:
+
+```bash
+$ latis discover backend.local:4433
+
+Agent: backend-agent
+Description: Backend processing agent
+Transport: grpc
+Streaming: true
+
+Skills:
+  - code-review: Review code for issues and improvements
+    Tags: [code, review]
+  - summarize: Summarize documents
+    Tags: [text, summarization]
+```
+
+## Design Principles
+
+- **A2A protocol alignment** — agent communication follows the [A2A spec](https://a2a-protocol.org/)
+- **Transport agnostic** — QUIC today, more transports tomorrow
+- **Peer-to-peer** — any node can both serve and connect
+- **Single binary** — one `latis` binary for all roles
+- **Config-driven** — unified CLI/env/file configuration
+
+## Documentation
+
+- [Configuration Reference](./docs/configuration.md)
+- [CLI Reference](./docs/cli.md)
+- [PKI & Security](./pkg/pki/README.md)
+- [Project Status](./docs/PROJECT.md)
+
+### Design Documents
+
+- [A2A Alignment](./docs/design/a2a-alignment.md)
+- [Execution Model](./docs/design/execution-model.md)
+- [Protocol](./docs/design/protocol.md)
 
 ## Name
 
