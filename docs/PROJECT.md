@@ -80,13 +80,13 @@ Units should serve two protocols over separate QUIC streams:
 - [x] Added IP SANs (127.0.0.1, ::1) to generated certificates
 - [x] Unit listens on `[::]:4433` by default for dual-stack IPv4/IPv6 support
 
+### Legacy Proto Cleanup (PR #18 - merged)
+- [x] Deleted `proto/latis/v1/latis.proto` (LatisService no longer used)
+- [x] Deleted generated `latis.pb.go` and `latis_grpc.pb.go`
+
 ## Next Steps
 
-1. **Delete legacy LatisService proto**
-   - Remove `proto/latis/v1/latis.proto` (no longer used)
-   - Regenerate protobuf code
-
-2. **Add real agent execution**
+1. **Add real agent execution**
    - Replace echo handler with actual LLM integration
    - Tool execution framework
 
