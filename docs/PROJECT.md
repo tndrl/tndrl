@@ -4,9 +4,9 @@ Current focus and progress for Latis development.
 
 ## Current Objective
 
-**Add real agent execution**
+**Add tool execution framework**
 
-Replace echo handler with actual LLM integration and tool execution framework.
+LLM integration complete (Ollama). Next: enable agents to execute tools and maintain conversation context.
 
 ## Completed
 
@@ -82,24 +82,26 @@ Replace echo handler with actual LLM integration and tool execution framework.
 - [x] Deleted `proto/latis/v1/latis.proto` (LatisService no longer used)
 - [x] Deleted generated `latis.pb.go` and `latis_grpc.pb.go`
 
-### Unified Binary with Peer Discovery
+### Unified Binary with LLM Providers (PR #19 - merged)
 - [x] Merged `latis` (cmdr) and `latis-unit` into single `latis` binary
 - [x] Kong CLI framework with subcommands (serve, ping, status, prompt, discover, shutdown)
-- [x] Two-pass config pattern: CLI flags > env vars > config file > defaults
+- [x] Config loading with reflection-based merge (CLI > config file > defaults)
 - [x] Versioned config schema (v1)
 - [x] Peer-to-peer architecture (any node can serve and connect)
-- [x] Static peer configuration in config file
+- [x] Named peer configuration (`latis prompt local "Hello"`)
 - [x] AgentCard discovery via `latis discover`
-- [x] Pluggable LLM providers (echo, ollama)
+- [x] Pluggable LLM providers (echo, ollama) - requires explicit `--llm-provider`
+- [x] Example configs: `examples/echo.yaml`, `examples/ollama.yaml`
 - [x] Deleted `cmd/latis-unit/` (merged into `cmd/latis/`)
 - [x] Updated README.md, CLAUDE.md with new architecture
 - [x] Created docs/configuration.md and docs/cli.md
 
 ## Next Steps
 
-1. **Add real agent execution**
-   - Replace echo handler with actual LLM integration
-   - Tool execution framework
+1. **Tool execution framework**
+   - Define tool interface for agents
+   - Tool calling via LLM function calling
+   - Conversation context/history
 
 2. **Dynamic peer discovery**
    - DNS SRV records

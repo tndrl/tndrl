@@ -56,15 +56,13 @@ Latis provides a unified interface for orchestrating AI agents running across mu
 latis/
 ├── cmd/latis/           # unified CLI (serve, ping, prompt, etc.)
 │   ├── main.go          # entry point, Kong setup
-│   ├── cli.go           # CLI struct, config types
-│   ├── config.go        # config file loading
+│   ├── cli.go           # CLI struct, config types, loading
 │   ├── serve.go         # daemon mode
 │   ├── client.go        # shared connection logic
-│   ├── ping.go          # ping command
-│   ├── status.go        # status command
-│   ├── prompt.go        # prompt command
-│   ├── discover.go      # discover command
-│   └── shutdown.go      # shutdown command
+│   └── *.go             # subcommands (ping, status, prompt, etc.)
+├── examples/            # example config files
+│   ├── echo.yaml        # testing with echo provider
+│   └── ollama.yaml      # production with Ollama
 ├── gen/go/latis/v1/     # generated protobuf/gRPC code
 ├── pkg/
 │   ├── pki/             # CA and certificate management
@@ -81,13 +79,12 @@ latis/
 
 ```bash
 # Terminal 1: Start a node as a daemon
-latis serve --pki-init --llm-provider=echo
+latis serve -c examples/echo.yaml
 
-# Terminal 2: Interact with the node
-latis ping localhost:4433
-latis status localhost:4433
-latis prompt localhost:4433 "Hello, what can you do?"
-latis discover localhost:4433
+# Terminal 2: Interact with the node (using named peer from config)
+latis prompt -c examples/echo.yaml local "Hello!"
+latis status -c examples/echo.yaml local
+latis discover -c examples/echo.yaml local
 ```
 
 PKI files are stored in `~/.latis/pki/`. See [pkg/pki/README.md](./pkg/pki/README.md) for details.
@@ -109,7 +106,7 @@ PKI files are stored in `~/.latis/pki/`. See [pkg/pki/README.md](./pkg/pki/READM
 
 See **[docs/PROJECT.md](./docs/PROJECT.md)** for current progress and next steps.
 
-**Current**: Unified binary with peer-to-peer model complete. Next: real agent execution.
+**Current**: LLM integration complete (Ollama). Next: tool execution framework.
 
 ## Development Environment
 
