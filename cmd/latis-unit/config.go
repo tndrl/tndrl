@@ -13,10 +13,17 @@ import (
 	"github.com/shanemcd/latis/pkg/pki"
 )
 
+// ConfigVersion is the current config file version.
+const ConfigVersion = "v1"
+
 // Config is the unified configuration for latis-unit.
 // It serves as the single source of truth for CLI flags, env vars, and config files.
 type Config struct {
 	ConfigFile string `help:"Path to config file" short:"c" type:"path" yaml:"-"`
+
+	// Version is the config file schema version.
+	// Required in config files to ensure compatibility.
+	Version string `yaml:"version" json:"version"`
 
 	Addr   string `help:"Address to listen on" default:"[::]:4433" env:"LATIS_ADDR" yaml:"addr"`
 	UnitID string `help:"Unit ID for certificate identity" env:"LATIS_UNIT_ID" yaml:"unitID"`
@@ -65,6 +72,7 @@ type Skill struct {
 
 // LoadConfigFile loads configuration from a YAML file into the config struct.
 // If the path is empty, this is a no-op.
+// Returns an error if the config file version is not supported.
 func LoadConfigFile(path string, cfg *Config) error {
 	if path == "" {
 		return nil
@@ -79,7 +87,26 @@ func LoadConfigFile(path string, cfg *Config) error {
 		return fmt.Errorf("parse config file: %w", err)
 	}
 
+	// Validate version
+	if err := validateConfigVersion(cfg.Version); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// validateConfigVersion checks that the config file version is supported.
+func validateConfigVersion(version string) error {
+	if version == "" {
+		return fmt.Errorf("config file missing 'version' field (expected: %s)", ConfigVersion)
+	}
+
+	switch version {
+	case "v1":
+		return nil
+	default:
+		return fmt.Errorf("unsupported config version %q (supported: %s)", version, ConfigVersion)
+	}
 }
 
 // ResolvePaths expands ~ in paths and sets defaults based on PKI directory.
