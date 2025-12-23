@@ -67,15 +67,24 @@ Units should serve two protocols over separate QUIC streams:
 - [x] Deleted `pkg/connector/` (unused abstraction)
 - [x] Removed legacy LatisService integration tests
 
+### A2A End-to-End (PR #15 - open)
+- [x] A2A executor already wired in unit (from PR #10)
+- [x] Added `--prompt` and `--stream` flags to cmdr
+- [x] A2A client via `muxDialer.A2ADialer()` and `a2aclient.NewGRPCTransport`
+- [x] `doPrompt()` sends message via A2A SendMessage
+- [x] `doStreamingPrompt()` uses A2A SendStreamingMessage
+- [x] Integration tests: TestA2ASendMessage, TestA2AGetAgentCard, TestA2AMultipleMessages
+- [x] TestBothStreamsWork verifies Control and A2A work independently
+
 ## Next Steps
 
-1. **Wire A2A stream to unit**
-   - Register A2A executor with A2A gRPC server
-   - Serve on `listener.A2AListener()`
+1. **Delete legacy LatisService proto**
+   - Remove `proto/latis/v1/latis.proto` (no longer used)
+   - Regenerate protobuf code
 
-2. **Add A2A client to cmdr**
-   - Use `muxDialer.A2ADialer()` for A2A connection
-   - Implement `--prompt` flag using A2A SendMessage
+2. **Add real agent execution**
+   - Replace echo handler with actual LLM integration
+   - Tool execution framework
 
 ## Architecture
 

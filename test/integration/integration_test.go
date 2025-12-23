@@ -2,13 +2,17 @@ package integration
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/a2aproject/a2a-go/a2a"
+	"github.com/a2aproject/a2a-go/a2aclient"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
+	"github.com/shanemcd/latis/pkg/a2aexec"
 	"github.com/shanemcd/latis/pkg/pki"
 	quictransport "github.com/shanemcd/latis/pkg/transport/quic"
 )
@@ -21,6 +25,7 @@ type muxTestEnv struct {
 	addr          string
 	listener      *quictransport.MuxListener
 	controlServer *grpc.Server
+	a2aServer     *grpc.Server
 	cleanup       func()
 }
 
@@ -106,6 +111,18 @@ func setupMuxTestEnv(t *testing.T) *muxTestEnv {
 		controlServer.Serve(listener.ControlListener())
 	}()
 
+	// Create and start A2A gRPC server
+	a2aServer := grpc.NewServer()
+	executor := a2aexec.NewExecutor()
+	a2aexec.RegisterWithGRPC(a2aServer, &a2aexec.ServerConfig{
+		Executor:  executor,
+		AgentCard: a2aexec.DefaultAgentCard("test-unit", "Test Unit", listener.Addr().String()),
+	})
+
+	go func() {
+		a2aServer.Serve(listener.A2AListener())
+	}()
+
 	return &muxTestEnv{
 		ca:            ca,
 		serverCert:    serverCert,
@@ -113,12 +130,14 @@ func setupMuxTestEnv(t *testing.T) *muxTestEnv {
 		addr:          listener.Addr().String(),
 		listener:      listener,
 		controlServer: controlServer,
+		a2aServer:     a2aServer,
 		cleanup: func() {
 			// Close listener first to stop accepting new connections
 			listener.Close()
 			// GracefulStop waits for handlers but with listener closed,
 			// should complete quickly
 			controlServer.GracefulStop()
+			a2aServer.GracefulStop()
 		},
 	}
 }
@@ -144,6 +163,33 @@ func (e *muxTestEnv) connectControl(t *testing.T) (latisv1.ControlServiceClient,
 
 	client := latisv1.NewControlServiceClient(conn)
 	return client, func() {
+		conn.Close()
+		muxDialer.Close()
+	}
+}
+
+func (e *muxTestEnv) connectA2A(t *testing.T) (a2aclient.Transport, func()) {
+	t.Helper()
+
+	clientTLS, err := pki.ClientTLSConfig(e.clientCert, e.ca, "localhost")
+	if err != nil {
+		t.Fatalf("ClientTLSConfig: %v", err)
+	}
+
+	muxDialer := quictransport.NewMuxDialer(clientTLS, nil)
+
+	conn, err := grpc.NewClient(
+		e.addr,
+		grpc.WithContextDialer(muxDialer.A2ADialer()),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+
+	transport := a2aclient.NewGRPCTransport(conn)
+	return transport, func() {
+		transport.Destroy()
 		conn.Close()
 		muxDialer.Close()
 	}
@@ -364,4 +410,141 @@ func TestConnectionRequiresMTLS(t *testing.T) {
 	} else {
 		t.Logf("Connection correctly rejected: %v", err)
 	}
+}
+
+// =============================================================================
+// A2A Stream Integration Tests
+// =============================================================================
+
+func TestA2ASendMessage(t *testing.T) {
+	env := setupMuxTestEnv(t)
+	defer env.cleanup()
+
+	transport, cleanup := env.connectA2A(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Send a message
+	msg := a2a.NewMessage(a2a.MessageRoleUser, a2a.TextPart{Text: "Hello, A2A!"})
+	resp, err := transport.SendMessage(ctx, &a2a.MessageSendParams{Message: msg})
+	if err != nil {
+		t.Fatalf("SendMessage: %v", err)
+	}
+
+	// Extract response text based on response type
+	var responseText string
+	switch r := resp.(type) {
+	case *a2a.Task:
+		t.Logf("Task ID: %s, State: %s", r.ID, r.Status.State)
+		if r.Status.Message != nil {
+			for _, part := range r.Status.Message.Parts {
+				if text, ok := part.(a2a.TextPart); ok {
+					responseText = text.Text
+					break
+				}
+			}
+		}
+	case *a2a.Message:
+		t.Logf("Message role: %s", r.Role)
+		for _, part := range r.Parts {
+			if text, ok := part.(a2a.TextPart); ok {
+				responseText = text.Text
+				break
+			}
+		}
+	default:
+		t.Fatalf("Unexpected response type: %T", resp)
+	}
+
+	if !strings.Contains(responseText, "Echo:") {
+		t.Errorf("Expected echo response, got: %s", responseText)
+	}
+
+	t.Logf("A2A Response: %s", responseText)
+}
+
+func TestA2AGetAgentCard(t *testing.T) {
+	env := setupMuxTestEnv(t)
+	defer env.cleanup()
+
+	transport, cleanup := env.connectA2A(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	card, err := transport.GetAgentCard(ctx)
+	if err != nil {
+		t.Fatalf("GetAgentCard: %v", err)
+	}
+
+	if card.Name != "test-unit" {
+		t.Errorf("Name = %q, want %q", card.Name, "test-unit")
+	}
+
+	if card.PreferredTransport != a2a.TransportProtocolGRPC {
+		t.Errorf("PreferredTransport = %v, want gRPC", card.PreferredTransport)
+	}
+
+	t.Logf("Agent: name=%s, description=%s", card.Name, card.Description)
+}
+
+func TestA2AMultipleMessages(t *testing.T) {
+	env := setupMuxTestEnv(t)
+	defer env.cleanup()
+
+	transport, cleanup := env.connectA2A(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	numMessages := 5
+	for i := 0; i < numMessages; i++ {
+		msg := a2a.NewMessage(a2a.MessageRoleUser, a2a.TextPart{
+			Text: strings.Repeat("test", i+1),
+		})
+		_, err := transport.SendMessage(ctx, &a2a.MessageSendParams{Message: msg})
+		if err != nil {
+			t.Fatalf("SendMessage %d: %v", i, err)
+		}
+	}
+
+	t.Logf("Successfully sent %d A2A messages", numMessages)
+}
+
+func TestBothStreamsWork(t *testing.T) {
+	env := setupMuxTestEnv(t)
+	defer env.cleanup()
+
+	// Connect to both streams
+	controlClient, controlCleanup := env.connectControl(t)
+	defer controlCleanup()
+
+	a2aTransport, a2aCleanup := env.connectA2A(t)
+	defer a2aCleanup()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Use Control stream
+	pingResp, err := controlClient.Ping(ctx, &latisv1.PingRequest{
+		Timestamp: time.Now().UnixNano(),
+	})
+	if err != nil {
+		t.Fatalf("Control Ping: %v", err)
+	}
+	t.Logf("Control ping RTT: %v", time.Duration(pingResp.PongTimestamp-pingResp.PingTimestamp))
+
+	// Use A2A stream
+	msg := a2a.NewMessage(a2a.MessageRoleUser, a2a.TextPart{Text: "Hello from both streams test"})
+	a2aResp, err := a2aTransport.SendMessage(ctx, &a2a.MessageSendParams{Message: msg})
+	if err != nil {
+		t.Fatalf("A2A SendMessage: %v", err)
+	}
+	t.Logf("A2A response type: %T", a2aResp)
+
+	t.Log("Both Control and A2A streams work independently")
 }

@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/a2aproject/a2a-go/a2a"
+	"github.com/a2aproject/a2a-go/a2aclient"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -21,10 +23,11 @@ import (
 )
 
 var (
-	addr     = flag.String("addr", "localhost:4433", "unit address to connect to")
-	status   = flag.Bool("status", false, "get unit status")
-	shutdown = flag.Bool("shutdown", false, "shutdown the unit")
-	prompt   = flag.String("prompt", "", "prompt to send via A2A (not yet implemented)")
+	addr      = flag.String("addr", "localhost:4433", "unit address to connect to")
+	status    = flag.Bool("status", false, "get unit status")
+	shutdown  = flag.Bool("shutdown", false, "shutdown the unit")
+	prompt    = flag.String("prompt", "", "prompt to send via A2A")
+	streaming = flag.Bool("stream", false, "use streaming response for prompt")
 	pkiDir   = flag.String("pki-dir", "", "PKI directory (default: ~/.latis/pki)")
 	caCert   = flag.String("ca-cert", "", "CA certificate path (overrides pki-dir)")
 	cert     = flag.String("cert", "", "cmdr certificate path (overrides pki-dir)")
@@ -69,10 +72,26 @@ func main() {
 	case *shutdown:
 		doShutdown(ctx, controlClient)
 	case *prompt != "":
-		// TODO: Implement A2A prompt sending
-		log.Println("A2A prompt sending not yet implemented")
-		log.Println("For now, use --status or --shutdown, or default ping")
-		os.Exit(1)
+		// Create A2A gRPC connection
+		a2aConn, err := grpc.NewClient(
+			*addr,
+			grpc.WithContextDialer(muxDialer.A2ADialer()),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		)
+		if err != nil {
+			log.Fatalf("failed to create A2A connection: %v", err)
+		}
+		defer a2aConn.Close()
+
+		// Create A2A transport
+		a2aTransport := a2aclient.NewGRPCTransport(a2aConn)
+		defer a2aTransport.Destroy()
+
+		if *streaming {
+			doStreamingPrompt(ctx, a2aTransport, *prompt)
+		} else {
+			doPrompt(ctx, a2aTransport, *prompt)
+		}
 	default:
 		doPing(ctx, controlClient)
 	}
@@ -133,6 +152,72 @@ func doShutdown(ctx context.Context, client latisv1.ControlServiceClient) {
 	} else {
 		log.Printf("shutdown rejected: %s", resp.RejectionReason)
 		os.Exit(1)
+	}
+}
+
+func doPrompt(ctx context.Context, transport a2aclient.Transport, content string) {
+	log.Println("sending prompt via A2A stream")
+
+	msg := a2a.NewMessage(a2a.MessageRoleUser, a2a.TextPart{Text: content})
+	resp, err := transport.SendMessage(ctx, &a2a.MessageSendParams{Message: msg})
+	if err != nil {
+		log.Fatalf("send message failed: %v", err)
+	}
+
+	// Handle response based on type
+	switch r := resp.(type) {
+	case *a2a.Task:
+		printTask(r)
+	case *a2a.Message:
+		printMessage(r)
+	default:
+		fmt.Printf("Response: %+v\n", resp)
+	}
+}
+
+func doStreamingPrompt(ctx context.Context, transport a2aclient.Transport, content string) {
+	log.Println("sending streaming prompt via A2A stream")
+
+	msg := a2a.NewMessage(a2a.MessageRoleUser, a2a.TextPart{Text: content})
+	events := transport.SendStreamingMessage(ctx, &a2a.MessageSendParams{Message: msg})
+
+	for event, err := range events {
+		if err != nil {
+			log.Fatalf("streaming error: %v", err)
+		}
+
+		switch e := event.(type) {
+		case *a2a.TaskStatusUpdateEvent:
+			fmt.Printf("[status] %s\n", e.Status.State)
+			if e.Status.Message != nil {
+				printMessage(e.Status.Message)
+			}
+		case *a2a.TaskArtifactUpdateEvent:
+			fmt.Printf("[artifact] %s\n", e.Artifact.Name)
+		default:
+			fmt.Printf("[event] %T\n", event)
+		}
+	}
+}
+
+func printTask(task *a2a.Task) {
+	fmt.Printf("Task:\n")
+	fmt.Printf("  ID:    %s\n", task.ID)
+	fmt.Printf("  State: %s\n", task.Status.State)
+	if task.Status.Message != nil {
+		printMessage(task.Status.Message)
+	}
+}
+
+func printMessage(msg *a2a.Message) {
+	fmt.Printf("Message (role=%s):\n", msg.Role)
+	for _, part := range msg.Parts {
+		switch p := part.(type) {
+		case a2a.TextPart:
+			fmt.Printf("  %s\n", p.Text)
+		default:
+			fmt.Printf("  [%T]\n", part)
+		}
 	}
 }
 
