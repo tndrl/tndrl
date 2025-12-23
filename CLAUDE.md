@@ -76,9 +76,9 @@ PKI files are stored in `~/.latis/pki/`. See [pkg/pki/README.md](./pkg/pki/READM
 
 ## Status
 
-**Current**: Core loop working (cmdr ↔ unit over gRPC/QUIC with mTLS).
+See **[docs/PROJECT.md](./docs/PROJECT.md)** for current progress and next steps.
 
-**Next**: Align with A2A protocol — adopt a2a-go types, implement AgentExecutor in units.
+**Current**: Implementing multiplexed QUIC transport with separate streams for A2A and Control protocols.
 
 ## Development Environment
 

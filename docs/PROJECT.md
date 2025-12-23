@@ -1,0 +1,84 @@
+# Project Tracking
+
+Current focus and progress for Latis development.
+
+## Current Objective
+
+**Make units A2A-compatible with multiplexed QUIC transport**
+
+Units should serve two protocols over separate QUIC streams:
+- **Control stream** (type=0x01): Lifecycle, health checks via `ControlService`
+- **A2A stream** (type=0x02): Agent communication via `a2a.v1.A2AService`
+
+## Completed
+
+### A2A Integration (PR #4 - merged)
+- [x] Added `github.com/a2aproject/a2a-go` dependency
+- [x] Created `pkg/a2aexec` with `AgentExecutor` implementation
+- [x] `RegisterWithGRPC()` wires A2A services to gRPC server
+- [x] Updated CLAUDE.md with toolbox development instructions
+
+### Multiplexed QUIC Transport (branch: a2a-executor, commit 569dbb2)
+- [x] `pkg/transport/quic/stream_type.go` — StreamType constants (Control=0x01, A2A=0x02)
+- [x] `pkg/transport/quic/stream_conn.go` — Wraps QUIC stream as net.Conn
+- [x] `pkg/transport/quic/mux.go` — MuxConn for typed stream open/accept
+- [x] `pkg/transport/quic/mux_listener.go` — Routes streams to type-specific listeners
+- [x] `pkg/transport/quic/mux_dialer.go` — Connection pooling, typed stream dialers
+- [x] `pkg/transport/quic/mux_test.go` — Tests for routing and connection reuse
+
+### Control Protocol (branch: a2a-executor, commit 569dbb2)
+- [x] `proto/latis/v1/control.proto` — ControlService (Ping, GetStatus, Shutdown)
+- [x] Generated code in `gen/go/latis/v1/control*.go`
+
+## In Progress
+
+### Needs PR
+The multiplexed transport and control protocol work is on `a2a-executor` branch but needs a new PR (the previous one was for A2A executor only and was merged).
+
+## Next Steps
+
+1. **Create PR for multiplexed transport** — branch off main, cherry-pick or rebase the multiplexing commit
+
+2. **Update unit to serve both protocols**
+   - Use `MuxListener` instead of single-stream `Listener`
+   - Register `ControlService` on control stream listener
+   - Register `a2a.v1.A2AService` on A2A stream listener
+   - Implement `ControlService` handler (Ping, GetStatus, Shutdown)
+
+3. **Update cmdr to use multiplexed dialer**
+   - Use `MuxDialer` for connection management
+   - Create separate gRPC clients for Control and A2A
+   - Health checks via Control stream
+   - Agent interaction via A2A stream
+
+4. **Integration tests**
+   - Test both streams work independently
+   - Test connection reuse across stream types
+   - Test graceful shutdown via Control stream
+
+## Architecture
+
+```
+QUIC Connection (cmdr ↔ unit)
+│
+├── Stream (type=0x01): Control
+│   └── gRPC ControlService
+│       ├── Ping — health check, latency measurement
+│       ├── GetStatus — unit state, active tasks
+│       └── Shutdown — graceful termination
+│
+└── Stream (type=0x02): A2A
+    └── gRPC a2a.v1.A2AService
+        ├── SendMessage — send prompt, get response
+        ├── SendStreamingMessage — streaming response
+        ├── GetTask — query task status
+        └── CancelTask — cancel in-progress task
+```
+
+## Design Decisions
+
+- **Stream type byte**: First byte of each stream identifies its purpose. Simple, extensible.
+- **Separate gRPC servers**: Each stream type gets its own gRPC server for isolation.
+- **Connection pooling**: MuxDialer reuses QUIC connections, opens new streams as needed.
+- **A2A protocol**: Use a2a-go's implementation rather than custom protocol. Interoperability with broader agent ecosystem.
+- **Control protocol**: Latis-specific for lifecycle management. Not part of A2A spec.
