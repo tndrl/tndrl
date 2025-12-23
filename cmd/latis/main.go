@@ -6,14 +6,12 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -23,13 +21,15 @@ import (
 )
 
 var (
-	addr    = flag.String("addr", "localhost:4433", "unit address to connect to")
-	prompt  = flag.String("prompt", "", "prompt to send (if empty, sends ping)")
-	pkiDir  = flag.String("pki-dir", "", "PKI directory (default: ~/.latis/pki)")
-	caCert  = flag.String("ca-cert", "", "CA certificate path (overrides pki-dir)")
-	cert    = flag.String("cert", "", "cmdr certificate path (overrides pki-dir)")
-	key     = flag.String("key", "", "cmdr private key path (overrides pki-dir)")
-	initPKI = flag.Bool("init-pki", false, "initialize PKI (generate cmdr cert if CA exists)")
+	addr     = flag.String("addr", "localhost:4433", "unit address to connect to")
+	status   = flag.Bool("status", false, "get unit status")
+	shutdown = flag.Bool("shutdown", false, "shutdown the unit")
+	prompt   = flag.String("prompt", "", "prompt to send via A2A (not yet implemented)")
+	pkiDir   = flag.String("pki-dir", "", "PKI directory (default: ~/.latis/pki)")
+	caCert   = flag.String("ca-cert", "", "CA certificate path (overrides pki-dir)")
+	cert     = flag.String("cert", "", "cmdr certificate path (overrides pki-dir)")
+	key      = flag.String("key", "", "cmdr private key path (overrides pki-dir)")
+	initPKI  = flag.Bool("init-pki", false, "initialize PKI (generate cmdr cert if CA exists)")
 )
 
 func main() {
@@ -42,95 +42,97 @@ func main() {
 		log.Fatalf("failed to setup TLS: %v", err)
 	}
 
-	// Create gRPC connection over QUIC
-	dialer := quictransport.NewDialer(tlsConfig, nil)
+	// Create multiplexed QUIC dialer
+	muxDialer := quictransport.NewMuxDialer(tlsConfig, nil)
+	defer muxDialer.Close()
 
-	// QUIC handles TLS at the transport layer, so gRPC uses "insecure" credentials
-	// (the connection is actually secured by QUIC's TLS 1.3)
-	conn, err := grpc.NewClient(
+	// Create Control gRPC connection
+	controlConn, err := grpc.NewClient(
 		*addr,
-		grpc.WithContextDialer(dialer),
+		grpc.WithContextDialer(muxDialer.ControlDialer()),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		log.Fatalf("failed to connect: %v", err)
+		log.Fatalf("failed to create control connection: %v", err)
 	}
-	defer conn.Close()
+	defer controlConn.Close()
 
-	// Create client
-	client := latisv1.NewLatisServiceClient(conn)
+	// Create Control client
+	controlClient := latisv1.NewControlServiceClient(controlConn)
 
-	// Establish bidirectional stream
 	ctx := context.Background()
-	stream, err := client.Connect(ctx)
+
+	// Handle commands
+	switch {
+	case *status:
+		doGetStatus(ctx, controlClient)
+	case *shutdown:
+		doShutdown(ctx, controlClient)
+	case *prompt != "":
+		// TODO: Implement A2A prompt sending
+		log.Println("A2A prompt sending not yet implemented")
+		log.Println("For now, use --status or --shutdown, or default ping")
+		os.Exit(1)
+	default:
+		doPing(ctx, controlClient)
+	}
+}
+
+func doPing(ctx context.Context, client latisv1.ControlServiceClient) {
+	log.Println("sending ping via Control stream")
+
+	pingTime := time.Now()
+	resp, err := client.Ping(ctx, &latisv1.PingRequest{
+		Timestamp: pingTime.UnixNano(),
+	})
 	if err != nil {
-		log.Fatalf("failed to establish stream: %v", err)
+		log.Fatalf("ping failed: %v", err)
 	}
 
-	// Send message based on flags
-	msgID := uuid.New().String()
+	rtt := time.Since(pingTime)
+	serverLatency := time.Duration(resp.PongTimestamp - resp.PingTimestamp)
 
-	if *prompt != "" {
-		// Send prompt
-		log.Printf("sending prompt: %s", *prompt)
-		if err := stream.Send(&latisv1.ConnectRequest{
-			Id: msgID,
-			Payload: &latisv1.ConnectRequest_PromptSend{
-				PromptSend: &latisv1.PromptSend{
-					Content: *prompt,
-				},
-			},
-		}); err != nil {
-			log.Fatalf("failed to send prompt: %v", err)
+	log.Printf("pong received: rtt=%v, server_latency=%v", rtt, serverLatency)
+}
+
+func doGetStatus(ctx context.Context, client latisv1.ControlServiceClient) {
+	log.Println("getting unit status via Control stream")
+
+	resp, err := client.GetStatus(ctx, &latisv1.GetStatusRequest{})
+	if err != nil {
+		log.Fatalf("get status failed: %v", err)
+	}
+
+	fmt.Printf("Unit Status:\n")
+	fmt.Printf("  Identity:     %s\n", resp.Identity)
+	fmt.Printf("  State:        %s\n", resp.State.String())
+	fmt.Printf("  Uptime:       %ds\n", resp.UptimeSeconds)
+	fmt.Printf("  Active Tasks: %d\n", resp.ActiveTasks)
+	if len(resp.Metadata) > 0 {
+		fmt.Printf("  Metadata:\n")
+		for k, v := range resp.Metadata {
+			fmt.Printf("    %s: %s\n", k, v)
 		}
+	}
+}
+
+func doShutdown(ctx context.Context, client latisv1.ControlServiceClient) {
+	log.Println("requesting shutdown via Control stream")
+
+	resp, err := client.Shutdown(ctx, &latisv1.ShutdownRequest{
+		Graceful:       true,
+		TimeoutSeconds: 30,
+		Reason:         "requested by cmdr",
+	})
+	if err != nil {
+		log.Fatalf("shutdown request failed: %v", err)
+	}
+
+	if resp.Accepted {
+		log.Println("shutdown accepted")
 	} else {
-		// Send ping
-		log.Println("sending ping")
-		if err := stream.Send(&latisv1.ConnectRequest{
-			Id: msgID,
-			Payload: &latisv1.ConnectRequest_Ping{
-				Ping: &latisv1.Ping{
-					Timestamp: time.Now().UnixNano(),
-				},
-			},
-		}); err != nil {
-			log.Fatalf("failed to send ping: %v", err)
-		}
-	}
-
-	// Receive responses
-	for {
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			log.Println("stream closed")
-			break
-		}
-		if err != nil {
-			log.Fatalf("failed to receive: %v", err)
-		}
-
-		// Handle response based on type
-		switch payload := resp.Payload.(type) {
-		case *latisv1.ConnectResponse_ResponseChunk:
-			fmt.Print(payload.ResponseChunk.Content)
-
-		case *latisv1.ConnectResponse_ResponseComplete:
-			fmt.Println()
-			log.Printf("response complete for request %s", payload.ResponseComplete.RequestId)
-			os.Exit(0)
-
-		case *latisv1.ConnectResponse_Pong:
-			latency := time.Now().UnixNano() - payload.Pong.PingTimestamp
-			log.Printf("pong received, latency=%v", time.Duration(latency))
-			os.Exit(0)
-
-		case *latisv1.ConnectResponse_Error:
-			log.Printf("error: %s - %s", payload.Error.Code, payload.Error.Message)
-			os.Exit(1)
-
-		default:
-			log.Printf("unhandled response type: %T", payload)
-		}
+		log.Printf("shutdown rejected: %s", resp.RejectionReason)
+		os.Exit(1)
 	}
 }
 
