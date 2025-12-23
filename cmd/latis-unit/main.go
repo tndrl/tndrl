@@ -4,35 +4,25 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"flag"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/a2aproject/a2a-go/a2a"
+	"github.com/alecthomas/kong"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 
 	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
 	"github.com/shanemcd/latis/pkg/a2aexec"
 	"github.com/shanemcd/latis/pkg/control"
+	"github.com/shanemcd/latis/pkg/llm"
 	"github.com/shanemcd/latis/pkg/pki"
 	quictransport "github.com/shanemcd/latis/pkg/transport/quic"
-)
-
-var (
-	addr    = flag.String("addr", "[::]:4433", "address to listen on")
-	pkiDir  = flag.String("pki-dir", "", "PKI directory (default: ~/.latis/pki)")
-	caCert  = flag.String("ca-cert", "", "CA certificate path (overrides pki-dir)")
-	caKey   = flag.String("ca-key", "", "CA private key path (for init-pki with BYO CA)")
-	cert    = flag.String("cert", "", "unit certificate path (overrides pki-dir)")
-	key     = flag.String("key", "", "unit private key path (overrides pki-dir)")
-	initPKI = flag.Bool("init-pki", false, "initialize PKI (generate CA + unit cert if missing)")
-	unitID  = flag.String("unit-id", "", "unit ID for certificate identity (default: auto-generated)")
 )
 
 // Unit encapsulates the unit daemon's runtime components.
@@ -47,13 +37,22 @@ type Unit struct {
 	wg     sync.WaitGroup
 }
 
-// NewUnit creates a new unit with the given listener and identity.
-func NewUnit(listener *quictransport.MuxListener, identity string) *Unit {
+// UnitConfig holds configuration for creating a new unit.
+type UnitConfig struct {
+	Listener    *quictransport.MuxListener
+	Identity    string
+	LLMProvider llm.Provider
+	AgentCard   *a2a.AgentCard
+	Streaming   bool
+}
+
+// NewUnit creates a new unit with the given configuration.
+func NewUnit(cfg UnitConfig) *Unit {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	u := &Unit{
-		listener: listener,
-		state:    control.NewState(identity),
+		listener: cfg.Listener,
+		state:    control.NewState(cfg.Identity),
 		ctx:      ctx,
 		cancel:   cancel,
 	}
@@ -63,12 +62,16 @@ func NewUnit(listener *quictransport.MuxListener, identity string) *Unit {
 	controlSvc := control.NewServer(u.state, u.triggerShutdown)
 	latisv1.RegisterControlServiceServer(u.controlServer, controlSvc)
 
-	// Create A2A server
+	// Create A2A server with LLM provider
 	u.a2aServer = grpc.NewServer()
-	executor := a2aexec.NewExecutor()
+	executor := &a2aexec.Executor{
+		Provider:  cfg.LLMProvider,
+		Streaming: cfg.Streaming,
+	}
+
 	a2aexec.RegisterWithGRPC(u.a2aServer, &a2aexec.ServerConfig{
 		Executor:  executor,
-		AgentCard: a2aexec.DefaultAgentCard("latis-unit", "Latis Unit Agent", listener.Addr().String()),
+		AgentCard: cfg.AgentCard,
 	})
 
 	return u
@@ -162,26 +165,65 @@ func (u *Unit) Shutdown() {
 }
 
 func main() {
-	flag.Parse()
+	cfg := Config{}
 
-	log.Printf("latis-unit starting on %s", *addr)
+	// Two-pass parsing: first pass to get --config path
+	parser, err := kong.New(&cfg,
+		kong.Name("latis-unit"),
+		kong.Description("Latis unit agent daemon"),
+		kong.UsageOnError(),
+	)
+	if err != nil {
+		log.Fatalf("failed to create parser: %v", err)
+	}
 
-	tlsConfig, err := setupTLS()
+	// First pass: parse to get config file path (ignore errors for missing required fields)
+	_, _ = parser.Parse(os.Args[1:])
+
+	// Load config file if provided
+	if err := LoadConfigFile(cfg.ConfigFile, &cfg); err != nil {
+		log.Fatalf("failed to load config file: %v", err)
+	}
+
+	// Second pass: CLI/env override file values
+	kong.Parse(&cfg,
+		kong.Name("latis-unit"),
+		kong.Description("Latis unit agent daemon"),
+	)
+
+	// Resolve paths (expand ~, set defaults)
+	if err := cfg.ResolvePaths(); err != nil {
+		log.Fatalf("failed to resolve paths: %v", err)
+	}
+
+	log.Printf("latis-unit starting on %s", cfg.Addr)
+
+	tlsConfig, err := setupTLS(&cfg)
 	if err != nil {
 		log.Fatalf("failed to setup TLS: %v", err)
 	}
 
 	// Create multiplexed QUIC listener
-	listener, err := quictransport.ListenMux(*addr, tlsConfig, nil)
+	listener, err := quictransport.ListenMux(cfg.Addr, tlsConfig, nil)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	// Extract identity from certificate or use generated ID
-	identity := extractIdentity()
+	// Create LLM provider
+	provider, err := cfg.CreateLLMProvider()
+	if err != nil {
+		log.Fatalf("failed to create LLM provider: %v", err)
+	}
+	log.Printf("LLM provider: %s", provider.Name())
 
 	// Create and run unit
-	unit := NewUnit(listener, identity)
+	unit := NewUnit(UnitConfig{
+		Listener:    listener,
+		Identity:    cfg.Identity(),
+		LLMProvider: provider,
+		AgentCard:   cfg.AgentCard(listener.Addr().String()),
+		Streaming:   cfg.Agent.Streaming,
+	})
 
 	// Handle signals
 	sigChan := make(chan os.Signal, 1)
@@ -200,69 +242,33 @@ func main() {
 	log.Println("unit stopped")
 }
 
-func extractIdentity() string {
-	id := *unitID
-	if id == "" {
-		id = uuid.New().String()[:8]
-	}
-	return pki.UnitIdentity(id)
-}
-
-func setupTLS() (*tls.Config, error) {
-	dir := *pkiDir
-	if dir == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return nil, fmt.Errorf("get home dir: %w", err)
-		}
-		dir = filepath.Join(home, ".latis", "pki")
-	}
-
-	// Determine paths
-	caCertPath := *caCert
-	caKeyPath := *caKey
-	certPath := *cert
-	keyPath := *key
-
-	if caCertPath == "" {
-		caCertPath = filepath.Join(dir, "ca.crt")
-	}
-	if caKeyPath == "" {
-		caKeyPath = filepath.Join(dir, "ca.key")
-	}
-	if certPath == "" {
-		certPath = filepath.Join(dir, "unit.crt")
-	}
-	if keyPath == "" {
-		keyPath = filepath.Join(dir, "unit.key")
-	}
-
+func setupTLS(cfg *Config) (*tls.Config, error) {
 	// Handle PKI initialization
-	if *initPKI {
-		if err := initializePKI(dir, caCertPath, caKeyPath, certPath, keyPath); err != nil {
+	if cfg.PKI.Init {
+		if err := initializePKI(cfg); err != nil {
 			return nil, fmt.Errorf("initialize PKI: %w", err)
 		}
 	}
 
 	// Load CA
-	ca, err := pki.LoadCA(caCertPath, caKeyPath)
+	ca, err := pki.LoadCA(cfg.PKI.CACert, cfg.PKI.CAKey)
 	if err != nil {
-		return nil, fmt.Errorf("load CA (try --init-pki to generate): %w", err)
+		return nil, fmt.Errorf("load CA (try --pki-init to generate): %w", err)
 	}
 
 	// Load unit certificate
-	unitCert, err := pki.LoadCert(certPath, keyPath)
+	unitCert, err := pki.LoadCert(cfg.PKI.Cert, cfg.PKI.Key)
 	if err != nil {
-		return nil, fmt.Errorf("load unit cert (try --init-pki to generate): %w", err)
+		return nil, fmt.Errorf("load unit cert (try --pki-init to generate): %w", err)
 	}
 
 	// Create mTLS server config
 	return pki.ServerTLSConfig(unitCert, ca)
 }
 
-func initializePKI(dir, caCertPath, caKeyPath, certPath, keyPath string) error {
+func initializePKI(cfg *Config) error {
 	// Ensure directory exists
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(cfg.PKI.Dir, 0700); err != nil {
 		return fmt.Errorf("create PKI directory: %w", err)
 	}
 
@@ -270,9 +276,9 @@ func initializePKI(dir, caCertPath, caKeyPath, certPath, keyPath string) error {
 	var ca *pki.CA
 	var err error
 
-	if pki.CAExists(dir) || (*caCert != "" && *caKey != "") {
+	if pki.CAExists(cfg.PKI.Dir) || (cfg.PKI.CACert != "" && cfg.PKI.CAKey != "") {
 		log.Println("loading existing CA")
-		ca, err = pki.LoadCA(caCertPath, caKeyPath)
+		ca, err = pki.LoadCA(cfg.PKI.CACert, cfg.PKI.CAKey)
 		if err != nil {
 			return fmt.Errorf("load existing CA: %w", err)
 		}
@@ -282,20 +288,20 @@ func initializePKI(dir, caCertPath, caKeyPath, certPath, keyPath string) error {
 		if err != nil {
 			return fmt.Errorf("generate CA: %w", err)
 		}
-		if err := ca.Save(dir); err != nil {
+		if err := ca.Save(cfg.PKI.Dir); err != nil {
 			return fmt.Errorf("save CA: %w", err)
 		}
-		log.Printf("CA saved to %s", dir)
+		log.Printf("CA saved to %s", cfg.PKI.Dir)
 	}
 
 	// Check if unit cert exists
-	if pki.CertExists(certPath, keyPath) {
+	if pki.CertExists(cfg.PKI.Cert, cfg.PKI.Key) {
 		log.Println("unit certificate already exists")
 		return nil
 	}
 
 	// Generate unit ID if not provided
-	id := *unitID
+	id := cfg.UnitID
 	if id == "" {
 		id = uuid.New().String()[:8]
 	}
@@ -308,10 +314,10 @@ func initializePKI(dir, caCertPath, caKeyPath, certPath, keyPath string) error {
 		return fmt.Errorf("generate unit cert: %w", err)
 	}
 
-	if err := unitCert.Save(certPath, keyPath); err != nil {
+	if err := unitCert.Save(cfg.PKI.Cert, cfg.PKI.Key); err != nil {
 		return fmt.Errorf("save unit cert: %w", err)
 	}
-	log.Printf("unit certificate saved to %s", certPath)
+	log.Printf("unit certificate saved to %s", cfg.PKI.Cert)
 
 	return nil
 }

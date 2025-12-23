@@ -6,6 +6,8 @@ import (
 
 	"github.com/a2aproject/a2a-go/a2a"
 	"github.com/a2aproject/a2a-go/a2asrv"
+
+	"github.com/shanemcd/latis/pkg/llm"
 )
 
 // testQueue is a simple queue for testing that collects events.
@@ -119,11 +121,29 @@ func TestExecutor_Cancel(t *testing.T) {
 	}
 }
 
-func TestExecutor_CustomHandler(t *testing.T) {
+// customProvider is a test provider that returns a fixed response.
+type customProvider struct {
+	response string
+}
+
+func (p *customProvider) Complete(ctx context.Context, messages []llm.Message) (string, error) {
+	return p.response, nil
+}
+
+func (p *customProvider) Stream(ctx context.Context, messages []llm.Message) (<-chan llm.StreamEvent, error) {
+	ch := make(chan llm.StreamEvent, 1)
+	go func() {
+		defer close(ch)
+		ch <- llm.StreamEvent{Content: p.response, Done: true}
+	}()
+	return ch, nil
+}
+
+func (p *customProvider) Name() string { return "custom" }
+
+func TestExecutor_CustomProvider(t *testing.T) {
 	exec := &Executor{
-		Handler: func(ctx context.Context, msg *a2a.Message) (*a2a.Message, error) {
-			return a2a.NewMessage(a2a.MessageRoleAgent, a2a.TextPart{Text: "Custom response"}), nil
-		},
+		Provider: &customProvider{response: "Custom response"},
 	}
 
 	msg := &a2a.Message{
