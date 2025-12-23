@@ -38,32 +38,35 @@ Units should serve two protocols over separate QUIC streams:
 - [x] CI updated with parallel jobs (lint, test, build)
 - [x] Branch ruleset updated to require all three checks
 
+### Unit Multiplexed Transport (PR #10 - merged)
+- [x] `pkg/control/state.go` — Unit state tracking (STARTING, READY, BUSY, DRAINING, STOPPED)
+- [x] `pkg/control/control.go` — ControlServiceServer implementation (Ping, GetStatus, Shutdown)
+- [x] `pkg/control/*_test.go` — Unit tests for control package
+- [x] Refactored `cmd/latis-unit/main.go` to use `MuxListener`
+- [x] Unit struct encapsulates both gRPC servers, state, and lifecycle
+- [x] Signal handling for graceful shutdown (SIGINT, SIGTERM)
+- [x] Shutdown RPC triggers graceful termination
+
 ## Next Steps
 
-1. **Update unit to serve both protocols**
-   - Use `MuxListener` instead of single-stream `Listener`
-   - Register `ControlService` on control stream listener
-   - Register `a2a.v1.A2AService` on A2A stream listener
-   - Implement `ControlService` handler (Ping, GetStatus, Shutdown)
-
-2. **Update cmdr to use multiplexed dialer**
+1. **Update cmdr to use multiplexed dialer**
    - Use `MuxDialer` for connection management
    - Create separate gRPC clients for Control and A2A
    - Health checks via Control stream
    - Agent interaction via A2A stream
 
-3. **Integration tests**
+2. **Integration tests for multiplexed transport**
    - Test both streams work independently
    - Test connection reuse across stream types
    - Test graceful shutdown via Control stream
 
-4. **Cleanup legacy transport code**
+3. **Cleanup legacy transport code**
    - Delete `pkg/transport/quic/dialer.go` (single-stream, replaced by mux_dialer)
    - Delete `pkg/transport/quic/listener.go` (single-stream, replaced by mux_listener)
    - Delete `pkg/transport/quic/conn.go` (replaced by stream_conn)
    - Update `pkg/transport/quic/README.md` for multiplexed API
 
-5. **Remove unused interface packages**
+4. **Remove unused interface packages**
    - Delete `pkg/dialer/` (interface not implemented by QUIC transport)
    - Delete `pkg/listener/` (interface not implemented by QUIC transport)
    - Delete `pkg/connector/` (unused abstraction)
