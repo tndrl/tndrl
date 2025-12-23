@@ -113,6 +113,48 @@ make test-integration
 
 Each test package has a `TestMain` that runs goleak verification after all tests complete. If a test leaks goroutines, it will fail.
 
+## Git Workflow
+
+Branch protection requires PRs for all changes to main. Always use fetch/rebase:
+
+```bash
+# Update main
+git checkout main
+git fetch origin main
+git rebase origin/main
+
+# Create a feature branch
+git checkout -b feature/my-feature
+
+# ... make changes, commit ...
+
+# Push and create PR
+git push -u origin feature/my-feature
+gh pr create
+
+# After PR is merged, return to main
+git checkout main
+git fetch origin main
+git rebase origin/main
+
+# Update current branch with latest main (without switching)
+git fetch origin main
+git rebase origin/main
+
+# Move uncommitted work to a new branch after PR merge
+git fetch origin main
+git rebase origin/main
+git checkout -b new-branch-name
+
+# If upstream has diverged (e.g., squash merge, force push)
+git checkout -b backup/my-feature  # backup first
+git checkout my-feature
+git fetch origin
+git reset --hard origin/my-feature
+```
+
+**Never use `git pull` or `git merge`** — always fetch then rebase (or reset --hard only when upstream has diverged).
+
 ## When Working Here
 
 1. Read the component README for context before making changes
