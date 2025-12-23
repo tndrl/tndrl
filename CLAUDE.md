@@ -81,7 +81,7 @@ latis/
 
 ```bash
 # Terminal 1: Start a node as a daemon
-latis serve --pki-init
+latis serve --pki-init --llm-provider=echo
 
 # Terminal 2: Interact with the node
 latis ping localhost:4433

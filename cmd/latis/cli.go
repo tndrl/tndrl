@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 
 	"github.com/a2aproject/a2a-go/a2a"
 	"github.com/google/uuid"
@@ -42,16 +43,16 @@ type CLI struct {
 
 // ServerConfig holds server-mode configuration.
 type ServerConfig struct {
-	Addr string `help:"Address to listen on" default:"[::]:4433" env:"LATIS_ADDR" yaml:"addr"`
+	Addr string `help:"Address to listen on" env:"LATIS_ADDR" yaml:"addr"`
 }
 
 // AgentConfig holds A2A agent card configuration.
 type AgentConfig struct {
 	Name        string   `help:"Agent name" env:"LATIS_AGENT_NAME" yaml:"name"`
 	Description string   `help:"Agent description" env:"LATIS_AGENT_DESCRIPTION" yaml:"description"`
-	InputModes  []string `help:"Supported input modes" default:"text" env:"LATIS_AGENT_INPUT_MODES" yaml:"inputModes"`
-	OutputModes []string `help:"Supported output modes" default:"text" env:"LATIS_AGENT_OUTPUT_MODES" yaml:"outputModes"`
-	Streaming   bool     `help:"Enable streaming" default:"true" env:"LATIS_AGENT_STREAMING" yaml:"streaming"`
+	InputModes  []string `help:"Supported input modes" env:"LATIS_AGENT_INPUT_MODES" yaml:"inputModes"`
+	OutputModes []string `help:"Supported output modes" env:"LATIS_AGENT_OUTPUT_MODES" yaml:"outputModes"`
+	Streaming   *bool    `help:"Enable streaming" env:"LATIS_AGENT_STREAMING" yaml:"streaming"`
 	Skills      []Skill  `yaml:"skills" kong:"-"`
 }
 
@@ -66,14 +67,14 @@ type Skill struct {
 
 // LLMConfig holds LLM provider configuration.
 type LLMConfig struct {
-	Provider string `help:"LLM provider (echo, ollama)" default:"echo" env:"LATIS_LLM_PROVIDER" yaml:"provider"`
+	Provider string `help:"LLM provider (echo, ollama)" env:"LATIS_LLM_PROVIDER" yaml:"provider"`
 	Model    string `help:"LLM model name" env:"LATIS_LLM_MODEL" yaml:"model"`
-	URL      string `help:"LLM API URL" default:"http://localhost:11434/v1" env:"LATIS_LLM_URL" yaml:"url"`
+	URL      string `help:"LLM API URL" env:"LATIS_LLM_URL" yaml:"url"`
 }
 
 // PKIConfig holds PKI-related configuration.
 type PKIConfig struct {
-	Dir    string `help:"PKI directory" default:"~/.latis/pki" env:"LATIS_PKI_DIR" yaml:"dir"`
+	Dir    string `help:"PKI directory" env:"LATIS_PKI_DIR" yaml:"dir"`
 	CACert string `help:"CA certificate path (overrides pki-dir)" env:"LATIS_CA_CERT" yaml:"caCert"`
 	CAKey  string `help:"CA private key path" env:"LATIS_CA_KEY" yaml:"caKey"`
 	Cert   string `help:"Certificate path" env:"LATIS_CERT" yaml:"cert"`
@@ -104,6 +105,78 @@ func LoadConfigFile(path string, cli *CLI) error {
 	}
 
 	return nil
+}
+
+// ApplyDefaults sets default values for fields that weren't set by config or CLI.
+func (cli *CLI) ApplyDefaults() {
+	if cli.Server.Addr == "" {
+		cli.Server.Addr = "[::]:4433"
+	}
+	if cli.PKI.Dir == "" {
+		cli.PKI.Dir = "~/.latis/pki"
+	}
+	if len(cli.Agent.InputModes) == 0 {
+		cli.Agent.InputModes = []string{"text"}
+	}
+	if len(cli.Agent.OutputModes) == 0 {
+		cli.Agent.OutputModes = []string{"text"}
+	}
+	if cli.Agent.Streaming == nil {
+		t := true
+		cli.Agent.Streaming = &t
+	}
+}
+
+// IsStreaming returns whether streaming is enabled (defaults to true).
+func (cli *CLI) IsStreaming() bool {
+	if cli.Agent.Streaming == nil {
+		return true
+	}
+	return *cli.Agent.Streaming
+}
+
+// MergeCLIInPlace fills in dst with values from config where dst has zero values.
+// This implements: CLI > config (CLI values are preserved, config fills gaps).
+func MergeCLIInPlace(dst, config *CLI) {
+	mergeStructsInPlace(reflect.ValueOf(dst).Elem(), reflect.ValueOf(config).Elem())
+}
+
+// mergeStructsInPlace recursively fills dst with config values where dst is zero.
+func mergeStructsInPlace(dst, config reflect.Value) {
+	for i := 0; i < dst.NumField(); i++ {
+		dstField := dst.Field(i)
+		configField := config.Field(i)
+
+		if !dstField.CanSet() {
+			continue
+		}
+
+		switch dstField.Kind() {
+		case reflect.Struct:
+			mergeStructsInPlace(dstField, configField)
+		case reflect.Ptr:
+			if dstField.IsNil() && !configField.IsNil() {
+				dstField.Set(configField)
+			}
+		case reflect.Slice:
+			if dstField.Len() == 0 && configField.Len() > 0 {
+				dstField.Set(configField)
+			}
+		case reflect.String:
+			if dstField.String() == "" && configField.String() != "" {
+				dstField.Set(configField)
+			}
+		case reflect.Bool:
+			// For bools, config true fills in if dst is false
+			if !dstField.Bool() && configField.Bool() {
+				dstField.Set(configField)
+			}
+		default:
+			if dstField.IsZero() && !configField.IsZero() {
+				dstField.Set(configField)
+			}
+		}
+	}
 }
 
 // ValidateConfigVersion checks that the config file version is supported.
@@ -170,12 +243,18 @@ func (cli *CLI) Identity() string {
 // CreateLLMProvider creates the configured LLM provider.
 func (cli *CLI) CreateLLMProvider() (llm.Provider, error) {
 	switch cli.LLM.Provider {
+	case "":
+		return nil, fmt.Errorf("--llm-provider is required (options: echo, ollama)")
 	case "ollama":
 		if cli.LLM.Model == "" {
 			return nil, fmt.Errorf("--llm-model is required when using ollama provider")
 		}
+		url := cli.LLM.URL
+		if url == "" {
+			url = "http://localhost:11434/v1"
+		}
 		return llm.NewOllamaProvider(llm.OllamaConfig{
-			BaseURL: cli.LLM.URL,
+			BaseURL: url,
 			Model:   cli.LLM.Model,
 		}), nil
 	case "echo":
@@ -215,7 +294,7 @@ func (cli *CLI) AgentCard(addr string) *a2a.AgentCard {
 		DefaultInputModes:  inputModes,
 		DefaultOutputModes: outputModes,
 		Capabilities: a2a.AgentCapabilities{
-			Streaming: cli.Agent.Streaming,
+			Streaming: cli.IsStreaming(),
 		},
 	}
 

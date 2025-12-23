@@ -8,7 +8,7 @@ Latis provides a unified interface for orchestrating AI agents running across mu
 
 ```bash
 # Terminal 1: Start a node as a daemon
-latis serve --pki-init
+latis serve --pki-init --llm-provider=echo
 
 # Terminal 2: Interact with the node
 latis ping localhost:4433
@@ -110,19 +110,22 @@ LATIS_LLM_PROVIDER=ollama latis serve
 
 ## LLM Providers
 
-Latis supports pluggable LLM providers:
+Latis requires an LLM provider to be configured:
 
 | Provider | Description |
 |----------|-------------|
-| `echo` | Default, echoes input (for testing) |
+| `echo` | Echoes input (for testing) |
 | `ollama` | Connects to Ollama via OpenAI-compatible API |
 
 ```bash
-# Start with Ollama
-latis serve --llm-provider=ollama --llm-model=llama3.2
+# For testing
+latis serve --pki-init --llm-provider=echo
+
+# With Ollama
+latis serve --pki-init --llm-provider=ollama --llm-model=llama3.2
 
 # With custom URL
-latis serve --llm-provider=ollama --llm-model=llama3.2 --llm-url=http://ollama:11434/v1
+latis serve --pki-init --llm-provider=ollama --llm-model=llama3.2 --llm-url=http://ollama:11434/v1
 ```
 
 ## Security
@@ -159,6 +162,24 @@ Skills:
     Tags: [code, review]
   - summarize: Summarize documents
     Tags: [text, summarization]
+```
+
+## Named Peers
+
+Define peers in your config file to use names instead of addresses:
+
+```yaml
+# examples/config.yaml
+peers:
+  - name: local
+    addr: localhost:4433
+```
+
+Then use peer names in commands:
+
+```bash
+latis prompt -c examples/config.yaml local "Hello!"
+latis status -c examples/config.yaml local
 ```
 
 ## Design Principles

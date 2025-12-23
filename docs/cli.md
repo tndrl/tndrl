@@ -30,8 +30,8 @@ latis serve [flags]
 | `--agent-name` | `latis-agent` | Agent name |
 | `--agent-description` | | Agent description |
 | `--agent-streaming` | `true` | Enable streaming responses |
-| `--llm-provider` | `echo` | LLM provider (echo, ollama) |
-| `--llm-model` | | Model name |
+| `--llm-provider` | **required** | LLM provider (echo, ollama) |
+| `--llm-model` | | Model name (required for ollama) |
 | `--llm-url` | | Provider API URL |
 | `--pki-dir` | `~/.latis/pki` | PKI directory |
 | `--pki-init` | `false` | Initialize PKI if missing |
@@ -39,11 +39,11 @@ latis serve [flags]
 #### Examples
 
 ```bash
-# Basic usage (echo provider)
-latis serve --pki-init
+# For testing (echo provider)
+latis serve --pki-init --llm-provider=echo
 
 # With Ollama
-latis serve --llm-provider=ollama --llm-model=llama3.2 --pki-init
+latis serve --pki-init --llm-provider=ollama --llm-model=llama3.2
 
 # With config file
 latis serve -c config.yaml

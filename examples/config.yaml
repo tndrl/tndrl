@@ -1,0 +1,12 @@
+version: v1
+
+llm:
+  provider: echo
+
+pki:
+  dir: ~/.latis/pki
+  init: true
+
+peers:
+  - name: local
+    addr: localhost:4433

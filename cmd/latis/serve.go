@@ -54,7 +54,7 @@ func (c *ServeCmd) Run(cli *CLI) error {
 		identity:    cli.Identity(),
 		llmProvider: provider,
 		agentCard:   cli.AgentCard(listener.Addr().String()),
-		streaming:   cli.Agent.Streaming,
+		streaming:   cli.IsStreaming(),
 	})
 
 	// Handle signals

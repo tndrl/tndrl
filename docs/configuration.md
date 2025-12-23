@@ -116,13 +116,13 @@ agent:
 
 ### llm
 
-LLM provider configuration.
+LLM provider configuration. **Required** - you must specify a provider.
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `provider` | string | `echo` | Provider type (echo, ollama) |
-| `model` | string | `""` | Model name |
-| `url` | string | `""` | Provider API URL |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `provider` | string | **yes** | Provider type (echo, ollama) |
+| `model` | string | for ollama | Model name |
+| `url` | string | no | Provider API URL (defaults to localhost:11434/v1 for ollama) |
 
 #### Providers
 
@@ -132,6 +132,11 @@ LLM provider configuration.
 | `ollama` | Connects to Ollama via OpenAI-compatible API |
 
 ```yaml
+# For testing
+llm:
+  provider: echo
+
+# For production with Ollama
 llm:
   provider: ollama
   model: llama3.2

@@ -468,8 +468,8 @@ func TestA2ASendMessage(t *testing.T) {
 		t.Fatalf("Unexpected response type: %T", resp)
 	}
 
-	if !strings.Contains(responseText, "Echo:") {
-		t.Errorf("Expected echo response, got: %s", responseText)
+	if responseText != "Hello, A2A!" {
+		t.Errorf("Expected echoed input, got: %s", responseText)
 	}
 
 	t.Logf("A2A Response: %s", responseText)

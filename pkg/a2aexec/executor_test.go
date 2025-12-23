@@ -81,7 +81,7 @@ func TestExecutor_Execute(t *testing.T) {
 		t.Fatalf("expected TextPart, got %T", response.Parts[0])
 	}
 
-	expected := "Echo: Hello, world!"
+	expected := "Hello, world!"
 	if text.Text != expected {
 		t.Errorf("expected %q, got %q", expected, text.Text)
 	}

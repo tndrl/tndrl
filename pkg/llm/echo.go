@@ -1,9 +1,6 @@
 package llm
 
-import (
-	"context"
-	"fmt"
-)
+import "context"
 
 // EchoProvider is a simple provider that echoes input for testing.
 type EchoProvider struct{}
@@ -16,7 +13,7 @@ func NewEchoProvider() *EchoProvider {
 // Complete echoes the last user message.
 func (p *EchoProvider) Complete(ctx context.Context, messages []Message) (string, error) {
 	if len(messages) == 0 {
-		return "Echo: (no messages)", nil
+		return "", nil
 	}
 
 	// Find the last user message
@@ -28,7 +25,7 @@ func (p *EchoProvider) Complete(ctx context.Context, messages []Message) (string
 		}
 	}
 
-	return fmt.Sprintf("Echo: %s", content), nil
+	return content, nil
 }
 
 // Stream echoes the last user message as a single event.
