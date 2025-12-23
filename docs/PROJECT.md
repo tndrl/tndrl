@@ -57,6 +57,17 @@ Units should serve two protocols over separate QUIC streams:
    - Test connection reuse across stream types
    - Test graceful shutdown via Control stream
 
+4. **Cleanup legacy transport code**
+   - Delete `pkg/transport/quic/dialer.go` (single-stream, replaced by mux_dialer)
+   - Delete `pkg/transport/quic/listener.go` (single-stream, replaced by mux_listener)
+   - Delete `pkg/transport/quic/conn.go` (replaced by stream_conn)
+   - Update `pkg/transport/quic/README.md` for multiplexed API
+
+5. **Remove unused interface packages**
+   - Delete `pkg/dialer/` (interface not implemented by QUIC transport)
+   - Delete `pkg/listener/` (interface not implemented by QUIC transport)
+   - Delete `pkg/connector/` (unused abstraction)
+
 ## Architecture
 
 ```
