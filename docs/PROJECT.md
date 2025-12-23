@@ -30,11 +30,13 @@ Units should serve two protocols over separate QUIC streams:
 - [x] `proto/latis/v1/control.proto` — ControlService (Ping, GetStatus, Shutdown)
 - [x] Generated code in `gen/go/latis/v1/control*.go`
 
-### Test Infrastructure
+### Test Infrastructure (PR #6 - merged)
 - [x] Added `go.uber.org/goleak` for goroutine leak detection
 - [x] `TestMain` with goleak in all test packages (pki, quic, a2aexec, integration)
 - [x] `Makefile` with test targets (`test`, `test-verbose`, `test-cover`, `test-unit`, `test-integration`)
 - [x] Race detection enabled by default (`-race` flag)
+- [x] CI updated with parallel jobs (lint, test, build)
+- [x] Branch ruleset updated to require all three checks
 
 ## Next Steps
 
