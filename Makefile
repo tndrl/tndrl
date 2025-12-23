@@ -24,7 +24,6 @@ test-integration:
 # Build binaries
 build:
 	go build -o bin/latis ./cmd/latis
-	go build -o bin/latis-unit ./cmd/latis-unit
 
 # Clean build artifacts
 clean:
