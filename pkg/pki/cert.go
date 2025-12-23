@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"math/big"
+	"net"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -54,7 +55,8 @@ func GenerateCert(ca *CA, identity string, isServer, isClient bool) (*Cert, erro
 		KeyUsage:  x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
 		URIs:      []*url.URL{identityURI},
 		// Allow localhost and common local addresses for development
-		DNSNames: []string{"localhost"},
+		DNSNames:    []string{"localhost"},
+		IPAddresses: []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")},
 	}
 
 	// Set extended key usage based on role
