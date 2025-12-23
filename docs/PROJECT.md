@@ -38,7 +38,7 @@ Units should serve two protocols over separate QUIC streams:
 - [x] CI updated with parallel jobs (lint, test, build)
 - [x] Branch ruleset updated to require all three checks
 
-### Unit Multiplexed Transport (PR #10 - merged)
+### Unit Multiplexed Transport (PR #10 - open)
 - [x] `pkg/control/state.go` — Unit state tracking (STARTING, READY, BUSY, DRAINING, STOPPED)
 - [x] `pkg/control/control.go` — ControlServiceServer implementation (Ping, GetStatus, Shutdown)
 - [x] `pkg/control/*_test.go` — Unit tests for control package

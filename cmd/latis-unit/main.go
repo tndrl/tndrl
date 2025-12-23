@@ -2,19 +2,24 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 
 	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
+	"github.com/shanemcd/latis/pkg/a2aexec"
+	"github.com/shanemcd/latis/pkg/control"
 	"github.com/shanemcd/latis/pkg/pki"
 	quictransport "github.com/shanemcd/latis/pkg/transport/quic"
 )
@@ -30,6 +35,123 @@ var (
 	unitID  = flag.String("unit-id", "", "unit ID for certificate identity (default: auto-generated)")
 )
 
+// Unit encapsulates the unit daemon's runtime components.
+type Unit struct {
+	listener      *quictransport.MuxListener
+	controlServer *grpc.Server
+	a2aServer     *grpc.Server
+	state         *control.State
+
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
+}
+
+// NewUnit creates a new unit with the given listener and identity.
+func NewUnit(listener *quictransport.MuxListener, identity string) *Unit {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	u := &Unit{
+		listener: listener,
+		state:    control.NewState(identity),
+		ctx:      ctx,
+		cancel:   cancel,
+	}
+
+	// Create control server
+	u.controlServer = grpc.NewServer()
+	controlSvc := control.NewServer(u.state, u.triggerShutdown)
+	latisv1.RegisterControlServiceServer(u.controlServer, controlSvc)
+
+	// Create A2A server
+	u.a2aServer = grpc.NewServer()
+	executor := a2aexec.NewExecutor()
+	a2aexec.RegisterWithGRPC(u.a2aServer, &a2aexec.ServerConfig{
+		Executor:  executor,
+		AgentCard: a2aexec.DefaultAgentCard("latis-unit", "Latis Unit Agent", listener.Addr().String()),
+	})
+
+	return u
+}
+
+// Run starts both servers and blocks until shutdown.
+func (u *Unit) Run() error {
+	u.state.SetReady()
+	log.Printf("unit ready, listening on %s (QUIC)", u.listener.Addr())
+	log.Printf("  control stream: 0x%02x", quictransport.StreamTypeControl)
+	log.Printf("  a2a stream:     0x%02x", quictransport.StreamTypeA2A)
+
+	errChan := make(chan error, 2)
+
+	// Start control server
+	u.wg.Add(1)
+	go func() {
+		defer u.wg.Done()
+		if err := u.controlServer.Serve(u.listener.ControlListener()); err != nil {
+			select {
+			case errChan <- fmt.Errorf("control server: %w", err):
+			default:
+			}
+		}
+	}()
+
+	// Start A2A server
+	u.wg.Add(1)
+	go func() {
+		defer u.wg.Done()
+		if err := u.a2aServer.Serve(u.listener.A2AListener()); err != nil {
+			select {
+			case errChan <- fmt.Errorf("a2a server: %w", err):
+			default:
+			}
+		}
+	}()
+
+	// Wait for context cancellation or error
+	select {
+	case <-u.ctx.Done():
+		log.Println("shutdown signal received")
+	case err := <-errChan:
+		return err
+	}
+
+	return nil
+}
+
+// triggerShutdown initiates graceful shutdown.
+func (u *Unit) triggerShutdown(graceful bool, timeout time.Duration, reason string) {
+	log.Printf("shutdown requested: graceful=%v, timeout=%v, reason=%q", graceful, timeout, reason)
+
+	u.state.SetDraining()
+
+	if graceful {
+		// Create timeout context if specified
+		if timeout > 0 {
+			go func() {
+				time.Sleep(timeout)
+				log.Println("graceful shutdown timeout exceeded, forcing stop")
+				u.controlServer.Stop()
+				u.a2aServer.Stop()
+			}()
+		}
+		u.controlServer.GracefulStop()
+		u.a2aServer.GracefulStop()
+	} else {
+		u.controlServer.Stop()
+		u.a2aServer.Stop()
+	}
+
+	u.state.SetStopped()
+	u.cancel()
+}
+
+// Shutdown gracefully shuts down the unit.
+func (u *Unit) Shutdown() {
+	u.triggerShutdown(true, 30*time.Second, "signal")
+	u.wg.Wait()
+	u.listener.Close()
+}
+
 func main() {
 	flag.Parse()
 
@@ -40,23 +162,41 @@ func main() {
 		log.Fatalf("failed to setup TLS: %v", err)
 	}
 
-	// Create QUIC listener
-	listener, err := quictransport.Listen(*addr, tlsConfig, nil)
+	// Create multiplexed QUIC listener
+	listener, err := quictransport.ListenMux(*addr, tlsConfig, nil)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	defer listener.Close()
 
-	log.Printf("listening on %s (QUIC)", listener.Addr())
+	// Extract identity from certificate or use generated ID
+	identity := extractIdentity()
 
-	// Create gRPC server
-	grpcServer := grpc.NewServer()
-	latisv1.RegisterLatisServiceServer(grpcServer, &server{})
+	// Create and run unit
+	unit := NewUnit(listener, identity)
 
-	// Serve
-	if err := grpcServer.Serve(listener); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+	// Handle signals
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigChan
+		log.Println("received shutdown signal")
+		unit.Shutdown()
+	}()
+
+	if err := unit.Run(); err != nil {
+		log.Fatalf("unit error: %v", err)
 	}
+
+	log.Println("unit stopped")
+}
+
+func extractIdentity() string {
+	id := *unitID
+	if id == "" {
+		id = uuid.New().String()[:8]
+	}
+	return pki.UnitIdentity(id)
 }
 
 func setupTLS() (*tls.Config, error) {
@@ -165,83 +305,4 @@ func initializePKI(dir, caCertPath, caKeyPath, certPath, keyPath string) error {
 	log.Printf("unit certificate saved to %s", certPath)
 
 	return nil
-}
-
-// server implements LatisServiceServer
-type server struct {
-	latisv1.UnimplementedLatisServiceServer
-}
-
-// Connect handles the bidirectional stream
-func (s *server) Connect(stream latisv1.LatisService_ConnectServer) error {
-	log.Println("new connection established")
-
-	for {
-		// Receive a message from cmdr
-		req, err := stream.Recv()
-		if err == io.EOF {
-			log.Println("connection closed by client")
-			return nil
-		}
-		if err != nil {
-			log.Printf("error receiving: %v", err)
-			return err
-		}
-
-		log.Printf("received message id=%s", req.Id)
-
-		// Handle the message based on its type
-		switch payload := req.Payload.(type) {
-		case *latisv1.ConnectRequest_PromptSend:
-			log.Printf("prompt: %s", payload.PromptSend.Content)
-
-			// Echo the prompt back as response chunks
-			content := fmt.Sprintf("Echo: %s", payload.PromptSend.Content)
-
-			// Send a response chunk
-			if err := stream.Send(&latisv1.ConnectResponse{
-				Id: req.Id,
-				Payload: &latisv1.ConnectResponse_ResponseChunk{
-					ResponseChunk: &latisv1.ResponseChunk{
-						RequestId: req.Id,
-						Content:   content,
-						Sequence:  0,
-					},
-				},
-			}); err != nil {
-				return err
-			}
-
-			// Send response complete
-			if err := stream.Send(&latisv1.ConnectResponse{
-				Id: req.Id,
-				Payload: &latisv1.ConnectResponse_ResponseComplete{
-					ResponseComplete: &latisv1.ResponseComplete{
-						RequestId: req.Id,
-					},
-				},
-			}); err != nil {
-				return err
-			}
-
-		case *latisv1.ConnectRequest_Ping:
-			log.Printf("ping received, timestamp=%d", payload.Ping.Timestamp)
-
-			// Send pong
-			if err := stream.Send(&latisv1.ConnectResponse{
-				Id: req.Id,
-				Payload: &latisv1.ConnectResponse_Pong{
-					Pong: &latisv1.Pong{
-						PingTimestamp: payload.Ping.Timestamp,
-						PongTimestamp: time.Now().UnixNano(),
-					},
-				},
-			}); err != nil {
-				return err
-			}
-
-		default:
-			log.Printf("unhandled message type: %T", payload)
-		}
-	}
 }
