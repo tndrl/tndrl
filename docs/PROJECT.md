@@ -123,7 +123,7 @@ MCP tool integration complete (mcphost). Next: enable dynamic discovery of peers
 - [x] Updated `docs/cli.md` with `--log-level` flag
 - [x] Updated `docs/configuration.md` with `logLevel` config option
 
-### MCP Tool Integration (PR #25)
+### MCP Tool Integration (PR #25 - merged)
 - [x] Added `github.com/mark3labs/mcphost` dependency
 - [x] Created `pkg/llm/mcphost.go` with `MCPHostProvider` implementation
 - [x] Extended `LLMConfig` with `mcpServers`, `systemPrompt`, `maxSteps` fields
