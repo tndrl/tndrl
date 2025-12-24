@@ -41,8 +41,9 @@ func (c *ServeCmd) Run(cli *CLI) error {
 		return fmt.Errorf("listen: %w", err)
 	}
 
-	// Create LLM provider
-	provider, err := cli.CreateLLMProvider()
+	// Create LLM provider (use background context since provider lifecycle is long)
+	ctx := context.Background()
+	provider, err := cli.CreateLLMProvider(ctx)
 	if err != nil {
 		return fmt.Errorf("create LLM provider: %w", err)
 	}

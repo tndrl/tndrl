@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -68,9 +69,13 @@ type Skill struct {
 
 // LLMConfig holds LLM provider configuration.
 type LLMConfig struct {
-	Provider string `help:"LLM provider (echo, ollama)" env:"LATIS_LLM_PROVIDER" yaml:"provider"`
-	Model    string `help:"LLM model name" env:"LATIS_LLM_MODEL" yaml:"model"`
-	URL      string `help:"LLM API URL" env:"LATIS_LLM_URL" yaml:"url"`
+	Provider      string                         `help:"LLM provider (echo, ollama, mcphost)" env:"LATIS_LLM_PROVIDER" yaml:"provider"`
+	Model         string                         `help:"LLM model name" env:"LATIS_LLM_MODEL" yaml:"model"`
+	URL           string                         `help:"LLM API URL" env:"LATIS_LLM_URL" yaml:"url"`
+	SystemPrompt  string                         `help:"System prompt for the LLM" env:"LATIS_LLM_SYSTEM_PROMPT" yaml:"systemPrompt"`
+	MaxSteps      int                            `help:"Maximum tool call steps (0=unlimited)" env:"LATIS_LLM_MAX_STEPS" yaml:"maxSteps"`
+	MCPConfigFile string                         `help:"Path to mcphost config file" env:"LATIS_MCP_CONFIG" yaml:"mcpConfigFile"`
+	MCPServers    map[string]llm.MCPServerConfig `yaml:"mcpServers" kong:"-"`
 }
 
 // PKIConfig holds PKI-related configuration.
@@ -242,10 +247,10 @@ func (cli *CLI) Identity() string {
 }
 
 // CreateLLMProvider creates the configured LLM provider.
-func (cli *CLI) CreateLLMProvider() (llm.Provider, error) {
+func (cli *CLI) CreateLLMProvider(ctx context.Context) (llm.Provider, error) {
 	switch cli.LLM.Provider {
 	case "":
-		return nil, fmt.Errorf("--llm-provider is required (options: echo, ollama)")
+		return nil, fmt.Errorf("--llm-provider is required (options: echo, ollama, mcphost)")
 	case "ollama":
 		if cli.LLM.Model == "" {
 			return nil, fmt.Errorf("--llm-model is required when using ollama provider")
@@ -258,6 +263,18 @@ func (cli *CLI) CreateLLMProvider() (llm.Provider, error) {
 			BaseURL: url,
 			Model:   cli.LLM.Model,
 		}), nil
+	case "mcphost":
+		if cli.LLM.Model == "" {
+			return nil, fmt.Errorf("--llm-model is required when using mcphost provider (format: provider:model, e.g., ollama:llama3.2)")
+		}
+		return llm.NewMCPHostProvider(ctx, llm.MCPHostOptions{
+			Model:         cli.LLM.Model,
+			SystemPrompt:  cli.LLM.SystemPrompt,
+			MCPConfigFile: cli.LLM.MCPConfigFile,
+			MCPServers:    cli.LLM.MCPServers,
+			MaxSteps:      cli.LLM.MaxSteps,
+			Streaming:     cli.IsStreaming(),
+		})
 	case "echo":
 		return llm.NewEchoProvider(), nil
 	default:
