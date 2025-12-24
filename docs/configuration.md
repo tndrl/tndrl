@@ -190,13 +190,19 @@ All config options can be set via environment variables with `LATIS_` prefix:
 
 | Config Path | Environment Variable |
 |-------------|---------------------|
-| `server.addr` | `LATIS_SERVER_ADDR` |
+| `server.addr` | `LATIS_ADDR` |
 | `agent.name` | `LATIS_AGENT_NAME` |
+| `agent.description` | `LATIS_AGENT_DESCRIPTION` |
+| `agent.streaming` | `LATIS_AGENT_STREAMING` |
 | `llm.provider` | `LATIS_LLM_PROVIDER` |
 | `llm.model` | `LATIS_LLM_MODEL` |
 | `llm.url` | `LATIS_LLM_URL` |
 | `pki.dir` | `LATIS_PKI_DIR` |
-| `pki.init` | `LATIS_PKI_INIT` |
+| `pki.caCert` | `LATIS_CA_CERT` |
+| `pki.caKey` | `LATIS_CA_KEY` |
+| `pki.cert` | `LATIS_CERT` |
+| `pki.key` | `LATIS_KEY` |
+| `pki.init` | `LATIS_INIT_PKI` |
 
 ```bash
 LATIS_LLM_PROVIDER=ollama LATIS_LLM_MODEL=llama3.2 latis serve

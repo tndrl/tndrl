@@ -1,151 +1,179 @@
-# cmdr
+# CLI
 
-The control plane and CLI for Latis. This is the human interface layer.
+The Latis command-line interface for interacting with nodes.
 
-## Responsibilities
+## Overview
 
-- **Human interface**: CLI (and eventually TUI/GUI/web) for interacting with agents
-- **Unit provisioning**: Create, start, stop, destroy units via pluggable provisioners
-- **Connection management**: Dial out to units OR accept dial-ins from units
-- **Session management**: Create, resume, destroy agent sessions
-- **Routing**: Direct messages to the right units
-- **Orchestration**: Coordinate multi-agent tasks
-- **State tracking**: Know what's running where
+Latis is a single binary with subcommands for both server and client operations:
+
+| Command | Purpose |
+|---------|---------|
+| `latis serve` | Run as daemon (server mode) |
+| `latis ping` | Health check a peer |
+| `latis status` | Get peer status |
+| `latis prompt` | Send message to peer via A2A |
+| `latis discover` | Fetch peer's AgentCard |
+| `latis shutdown` | Request peer shutdown |
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                         cmdr                            │
-├─────────────────────────────────────────────────────────┤
-│  Provisioners          │  Dialers        │  Listeners   │
-│  (create units)        │  (cmdr → unit)  │  (unit → cmdr)│
-│  ┌──────────────────┐  │  ┌───────────┐  │  ┌─────────┐ │
-│  │ process          │  │  │ ssh       │  │  │ tcp     │ │
-│  │ container        │  │  │ tcp       │  │  │ ws      │ │
-│  │ qemu / tart      │  │  │ websocket │  │  │ quic    │ │
-│  │ cloud-*          │  │  │ local     │  │  │ unix    │ │
-│  └──────────────────┘  │  └───────────┘  │  └─────────┘ │
-└─────────────────────────────────────────────────────────┘
-                              │                   │
-                              ↓                   ↓
-                         ┌────────┐          ┌────────┐
-                         │  unit  │          │  unit  │
-                         └────────┘          └────────┘
-                      (cmdr dialed)      (unit dialed in)
+┌─────────────────────────────────────────────────────────────┐
+│                           latis                              │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────────┐│
+│  │                     CLI (Kong)                          ││
+│  │  serve │ ping │ status │ prompt │ discover │ shutdown   ││
+│  └─────────────────────────────────────────────────────────┘│
+│                            │                                │
+│           ┌────────────────┼────────────────┐              │
+│           ▼                ▼                ▼              │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐    │
+│  │   Server    │  │   Client    │  │  Config         │    │
+│  │   Mode      │  │   Mode      │  │  (YAML/env/CLI) │    │
+│  └─────────────┘  └─────────────┘  └─────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Provisioners
+## Server Mode
 
-Provisioners handle unit lifecycle — creating, starting, stopping, destroying units. Pluggable.
+`latis serve` runs as a daemon. See [unit.md](./unit.md) for details.
 
-| Provisioner | Description |
-|-------------|-------------|
-| `process` | Spawn a local process |
-| `container` | Run in podman/docker container |
-| `qemu` | Start a QEMU VM |
-| `tart` | Start a Tart VM (macOS) |
-| `libvirt` | Manage via libvirt |
-| `cloud-*` | Cloud provider APIs (AWS, GCP, etc.) |
+## Client Mode
 
-Provisioners are decoupled from connection — a provisioned unit still needs to establish a connection via dialers or listeners.
+Other commands (`ping`, `status`, `prompt`, etc.) operate as clients:
 
-## Dialers
+1. Load configuration (config file, env vars, CLI flags)
+2. Resolve peer address (by name or direct address)
+3. Connect via QUIC/mTLS
+4. Make RPC call(s)
+5. Display result
+6. Exit
 
-Dialers establish outbound connections from cmdr to units. Used when cmdr initiates.
+### Connection Flow
 
-| Dialer | Description |
-|--------|-------------|
-| `ssh` | SSH into remote host, communicate via stdin/stdout |
-| `tcp` | Direct TCP connection |
-| `websocket` | WebSocket connection |
-| `local` | Stdin/stdout to spawned process |
-| `container` | Exec into container |
+```go
+// Simplified client flow (cmd/latis/client.go)
+func connectAndRun(cli *CLI, peer string, fn func(mux *MuxDialer) error) error {
+    // 1. Initialize PKI
+    tlsConfig, err := setupPKI(cli)
 
-## Listeners
+    // 2. Create dialer
+    muxDialer := quictransport.NewMuxDialer(tlsConfig, nil)
+    defer muxDialer.Close()
 
-Listeners accept inbound connections from units. Used when units dial out to cmdr.
+    // 3. Run client operation
+    return fn(muxDialer)
+}
+```
 
-| Listener | Description |
-|----------|-------------|
-| `tcp` | Accept TCP connections |
-| `websocket` | Accept WebSocket connections |
-| `quic` | Accept QUIC connections |
-| `unix` | Accept Unix socket connections |
+## Configuration
 
-Listeners are useful for:
-- NAT traversal (unit behind firewall dials out)
-- Ephemeral cloud instances (provision, then unit calls home)
-- Dynamic environments where unit addresses aren't known upfront
+The CLI uses a unified configuration system:
 
-## Connection Constraint
+**Precedence**: CLI flags > environment variables > config file > defaults
 
-At least one connection method must be configured per unit:
-- If no dialers configured → must have at least one listener
-- A unit can support both (dial AND listen)
-- Multiple listeners allowed (unit reachable multiple ways)
+```bash
+# Config file
+latis serve -c config.yaml
 
-## Unit Configuration Examples
+# Environment variable
+LATIS_LLM_PROVIDER=echo latis serve
 
-**Local process (cmdr spawns and dials via stdio):**
+# CLI flag (highest priority)
+latis serve -c config.yaml --llm-model=mistral
+```
+
+### Named Peers
+
+Config files can define named peers:
+
 ```yaml
-unit: dev-local
-provisioner: process
-  command: latis-unit
-connection:
-  dial:
-    via: local  # stdin/stdout
+peers:
+  - name: local
+    addr: localhost:4433
+  - name: backend
+    addr: backend.example.com:4433
 ```
 
-**Remote server (cmdr dials via SSH):**
-```yaml
-unit: prod-server
-# no provisioner — assume unit already running
-connection:
-  dial:
-    via: ssh
-    address: user@prod.example.com
+Then use by name:
+```bash
+latis ping local
+latis prompt backend "Hello!"
 ```
 
-**Local VM (cmdr provisions and dials):**
-```yaml
-unit: gpu-box
-provisioner: qemu
-  image: /path/to/vm.qcow2
-  memory: 16G
-connection:
-  dial:
-    via: tcp
-    address: localhost:9000  # VM exposes port
+## Implementation
+
+| File | Purpose |
+|------|---------|
+| `cmd/latis/main.go` | Entry point, Kong CLI setup |
+| `cmd/latis/cli.go` | CLI struct, config loading, types |
+| `cmd/latis/serve.go` | Server mode implementation |
+| `cmd/latis/client.go` | Shared client connection logic |
+| `cmd/latis/ping.go` | Ping command |
+| `cmd/latis/status.go` | Status command |
+| `cmd/latis/prompt.go` | Prompt command |
+| `cmd/latis/discover.go` | Discover command |
+| `cmd/latis/shutdown.go` | Shutdown command |
+
+## Design Decisions
+
+### Single Binary
+
+One `latis` binary for all operations:
+
+- **Simpler deployment** — one binary to install
+- **Shared code** — PKI, config, transport code used by all modes
+- **Peer-to-peer** — any node can be both server and client
+
+### Kong CLI Framework
+
+Using [Kong](https://github.com/alecthomas/kong) for CLI parsing:
+
+- Struct-based configuration
+- Automatic flag/env binding
+- Subcommand support
+- Good Go integration
+
+### Config-Driven
+
+All configuration comes from the same schema:
+
+- Config file (YAML)
+- Environment variables (`LATIS_*`)
+- CLI flags (`--*`)
+
+See [docs/configuration.md](../configuration.md) for the full schema.
+
+## Future Considerations
+
+### Interactive Mode
+
+A persistent CLI session for multiple operations:
+
+```bash
+latis shell
+> ping backend
+> prompt backend "Hello"
+> status backend
+> exit
 ```
 
-**Cloud instance (provision, unit dials back):**
-```yaml
-unit: ephemeral-worker
-provisioner: cloud-aws
-  instance_type: g4dn.xlarge
-  ami: ami-xxxxx
-connection:
-  accept:
-    via: websocket
-    # unit will dial wss://cmdr.example.com/units
-    # and identify itself
+### Multi-Agent Coordination
+
+Orchestrating multiple agents from CLI:
+
+```bash
+latis coordinate --agents agent1,agent2 "Work together on this task"
 ```
 
-## Usage
+### Provisioning
 
+Spawning and managing agent nodes:
+
+```bash
+latis provision --type=container --image=latis:latest
+latis destroy <node-id>
 ```
-latis connect <unit-address>
-latis session new [--connector ssh|ws|local]
-latis prompt "your message here"
-latis agents list
-latis coordinate --agents unit-1,unit-2 "work together on this"
-```
 
-## Design Notes
-
-- cmdr is the **human-facing** layer — it translates human intent into protocol messages
-- cmdr **provisions** units via pluggable provisioners
-- cmdr **dials** or **listens** to establish connections with units
-- cmdr doesn't know how to execute agent tasks — that's the unit's job
-- cmdr only knows the protocol and how to orchestrate
+These would require implementing the `Provisioner` interface.
