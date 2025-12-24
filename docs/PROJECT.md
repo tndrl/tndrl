@@ -112,7 +112,7 @@ LLM integration complete (Ollama). Next: enable agents to execute tools and main
 - [x] Renamed `UnitIdentity` → `NodeIdentity` (kept deprecated alias)
 - [x] Fixed undefined `pki.CmdrIdentity` bug in tests
 
-### Structured Logging (PR #22)
+### Structured Logging (PR #23 - merged)
 - [x] Created `cmd/latis/logging.go` with `setupLogger()` for slog configuration
 - [x] Added `--log-level` flag (debug, info, warn, error) and `-v`/`--verbose` shortcut
 - [x] Migrated all `log.Printf/Println` to structured `slog` calls in cmd/latis/
