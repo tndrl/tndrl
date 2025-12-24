@@ -1,0 +1,70 @@
+version: v1
+
+# MCP-enabled agent configuration
+# This example uses mcphost provider with MCP tools
+
+server:
+  addr: "[::]:4433"
+
+agent:
+  name: latis-mcp-agent
+  description: "Agent with MCP tool support"
+  streaming: true
+  skills:
+    - id: filesystem
+      name: Filesystem Operations
+      description: "Read, write, and manage files"
+      tags: [filesystem, tools]
+      examples:
+        - "List files in /tmp"
+        - "Read the contents of /etc/hostname"
+
+llm:
+  provider: mcphost
+  # Model format: provider:model (e.g., ollama:llama3.2, anthropic:claude-3-sonnet)
+  model: ollama:llama3.2
+  systemPrompt: "You are a helpful assistant with access to filesystem tools."
+  maxSteps: 10  # Maximum tool call iterations (0=unlimited)
+
+  # Option 1: Use an external mcphost config file
+  # This allows sharing the same MCP config with mcphost CLI
+  # mcpConfigFile: ~/.mcphost.yaml
+
+  # Option 2: Embed MCP servers configuration directly
+  # MCP servers configuration
+  # Supports: local (stdio), remote (HTTP), builtin (in-process)
+  mcpServers:
+    # Builtin filesystem server - runs in-process
+    filesystem:
+      type: builtin
+      name: fs
+      options:
+        allowed_directories:
+          - /tmp
+          - ${HOME}
+
+    # Builtin bash server for shell commands
+    # bash:
+    #   type: builtin
+    #   name: bash
+
+    # Example: Local MCP server via stdio
+    # sqlite:
+    #   type: local
+    #   command: ["uvx", "mcp-server-sqlite", "--db-path", "/tmp/example.db"]
+    #   environment:
+    #     DEBUG: "true"
+
+    # Example: Remote MCP server via HTTP
+    # websearch:
+    #   type: remote
+    #   url: "https://api.example.com/mcp"
+    #   headers:
+    #     - "Authorization: Bearer ${WEBSEARCH_TOKEN}"
+
+pki:
+  init: true
+
+peers:
+  - name: local
+    addr: localhost:4433

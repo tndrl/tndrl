@@ -135,9 +135,13 @@ LLM provider configuration. **Required** - you must specify a provider.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `provider` | string | **yes** | Provider type (echo, ollama) |
-| `model` | string | for ollama | Model name |
+| `provider` | string | **yes** | Provider type (echo, ollama, mcphost) |
+| `model` | string | for ollama/mcphost | Model name |
 | `url` | string | no | Provider API URL (defaults to localhost:11434/v1 for ollama) |
+| `systemPrompt` | string | no | System prompt for the LLM |
+| `maxSteps` | int | no | Maximum tool call iterations (0=unlimited) |
+| `mcpConfigFile` | string | no | Path to external mcphost config file |
+| `mcpServers` | map | no | MCP server configurations (ignored if mcpConfigFile is set) |
 
 #### Providers
 
@@ -145,17 +149,85 @@ LLM provider configuration. **Required** - you must specify a provider.
 |----------|-------------|
 | `echo` | Echoes input back (for testing) |
 | `ollama` | Connects to Ollama via OpenAI-compatible API |
+| `mcphost` | Full MCP tool support via mcphost SDK |
 
 ```yaml
 # For testing
 llm:
   provider: echo
 
-# For production with Ollama
+# For production with Ollama (no tools)
 llm:
   provider: ollama
   model: llama3.2
   url: http://localhost:11434/v1
+
+# For production with MCP tools (embedded config)
+llm:
+  provider: mcphost
+  model: ollama:llama3.2
+  systemPrompt: "You are a helpful assistant with tool access."
+  maxSteps: 10
+  mcpServers:
+    filesystem:
+      type: builtin
+      name: fs
+      options:
+        allowed_directories: ["/tmp"]
+
+# For production with MCP tools (external config file)
+# This allows sharing the same config with mcphost CLI
+llm:
+  provider: mcphost
+  model: ollama:llama3.2
+  mcpConfigFile: ~/.mcphost.yaml
+```
+
+#### MCP Server Configuration
+
+When using the `mcphost` provider, you can configure MCP servers to provide tools:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | string | Server type: `local`, `remote`, or `builtin` |
+| `command` | []string | Command to run (for `local` type) |
+| `environment` | map | Environment variables (for `local` type) |
+| `url` | string | Server URL (for `remote` type) |
+| `headers` | []string | HTTP headers (for `remote` type) |
+| `name` | string | Builtin server name (for `builtin` type) |
+| `options` | map | Server options (for `builtin` type) |
+
+**Builtin servers available:**
+- `fs` - Filesystem access with configurable allowed directories
+- `bash` - Shell command execution
+- `todo` - Task management
+- `http` - HTTP fetch operations
+
+```yaml
+llm:
+  provider: mcphost
+  model: ollama:llama3.2
+  mcpServers:
+    # Builtin server (in-process, fast)
+    filesystem:
+      type: builtin
+      name: fs
+      options:
+        allowed_directories: ["/tmp", "/home/user"]
+
+    # Local server (stdio)
+    sqlite:
+      type: local
+      command: ["uvx", "mcp-server-sqlite", "--db-path", "/tmp/db.sqlite"]
+      environment:
+        DEBUG: "true"
+
+    # Remote server (HTTP)
+    api:
+      type: remote
+      url: "https://api.example.com/mcp"
+      headers:
+        - "Authorization: Bearer ${API_TOKEN}"
 ```
 
 ### pki

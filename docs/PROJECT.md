@@ -4,9 +4,9 @@ Current focus and progress for Latis development.
 
 ## Current Objective
 
-**Add tool execution framework**
+**Dynamic peer discovery**
 
-LLM integration complete (Ollama). Next: enable agents to execute tools and maintain conversation context.
+MCP tool integration complete (mcphost). Next: enable dynamic discovery of peers via DNS SRV or multicast.
 
 ## Completed
 
@@ -123,16 +123,25 @@ LLM integration complete (Ollama). Next: enable agents to execute tools and main
 - [x] Updated `docs/cli.md` with `--log-level` flag
 - [x] Updated `docs/configuration.md` with `logLevel` config option
 
+### MCP Tool Integration (PR #25)
+- [x] Added `github.com/mark3labs/mcphost` dependency
+- [x] Created `pkg/llm/mcphost.go` with `MCPHostProvider` implementation
+- [x] Extended `LLMConfig` with `mcpServers`, `systemPrompt`, `maxSteps` fields
+- [x] New provider type `mcphost` with full tool calling support
+- [x] Supports builtin (fs, bash, todo, http), local (stdio), and remote (HTTP) MCP servers
+- [x] Added `mcpConfigFile` option for external mcphost config files
+- [x] Added `examples/mcphost.yaml` configuration example
+- [x] Updated `docs/configuration.md` with MCP server configuration
+
 ## Next Steps
 
-1. **Tool execution framework**
-   - Define tool interface for agents
-   - Tool calling via LLM function calling
-   - Conversation context/history
-
-2. **Dynamic peer discovery**
+1. **Dynamic peer discovery**
    - DNS SRV records
    - Multicast/broadcast discovery
+
+2. **Conversation context/history**
+   - Maintain conversation state across A2A messages
+   - Session management for multi-turn interactions
 
 ## Architecture
 
