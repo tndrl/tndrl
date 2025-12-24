@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 
 	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
@@ -20,7 +20,7 @@ type ShutdownCmd struct {
 // Run executes the shutdown command.
 func (c *ShutdownCmd) Run(cli *CLI) error {
 	addr := cli.ResolvePeer(c.Peer)
-	log.Printf("requesting shutdown of %s", addr)
+	slog.Debug("requesting shutdown", "addr", addr, "force", c.Force)
 
 	conn, err := ConnectToPeer(cli, addr)
 	if err != nil {

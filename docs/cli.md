@@ -9,7 +9,8 @@ These flags apply to all commands:
 | Flag | Short | Description |
 |------|-------|-------------|
 | `--config` | `-c` | Path to config file |
-| `--verbose` | `-v` | Verbose output |
+| `--log-level` | | Log level (debug, info, warn, error). Default: info |
+| `--verbose` | `-v` | Verbose output (same as --log-level=debug) |
 | `--help` | `-h` | Show help |
 
 ## Commands

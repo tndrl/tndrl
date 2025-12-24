@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"log/slog"
 	"net"
 	"sync"
 
@@ -69,13 +70,16 @@ func (d *MuxDialer) getOrCreateConn(ctx context.Context, addr string) (*MuxConn,
 	d.mu.Lock()
 	if muxConn, ok := d.conns[addr]; ok {
 		d.mu.Unlock()
+		slog.Debug("reusing connection", "addr", addr)
 		return muxConn, nil
 	}
 	d.mu.Unlock()
 
 	// Create new connection
+	slog.Debug("establishing connection", "addr", addr)
 	qconn, err := quic.DialAddr(ctx, addr, d.tlsConfig, d.quicConfig)
 	if err != nil {
+		slog.Debug("connection failed", "addr", addr, "err", err)
 		return nil, fmt.Errorf("dial %s: %w", addr, err)
 	}
 
@@ -91,9 +95,12 @@ func (d *MuxDialer) getOrCreateConn(ctx context.Context, addr string) (*MuxConn,
 	d.conns[addr] = muxConn
 	d.mu.Unlock()
 
+	slog.Debug("connection established", "addr", addr)
+
 	// Monitor connection for closure
 	go func() {
 		<-muxConn.Context().Done()
+		slog.Debug("connection closed", "addr", addr)
 		d.removeConn(addr)
 	}()
 

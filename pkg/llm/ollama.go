@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 )
@@ -77,6 +78,8 @@ type streamChunk struct {
 
 // Complete generates a non-streaming response.
 func (p *OllamaProvider) Complete(ctx context.Context, messages []Message) (string, error) {
+	slog.Debug("ollama complete request", "model", p.model, "message_count", len(messages))
+
 	reqBody := chatRequest{
 		Model:    p.model,
 		Messages: convertMessages(messages),
@@ -96,12 +99,14 @@ func (p *OllamaProvider) Complete(ctx context.Context, messages []Message) (stri
 
 	resp, err := p.client.Do(req)
 	if err != nil {
+		slog.Error("ollama request failed", "err", err)
 		return "", fmt.Errorf("send request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
+		slog.Error("ollama API error", "status", resp.StatusCode, "body", string(respBody))
 		return "", fmt.Errorf("ollama error (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
@@ -123,6 +128,8 @@ func (p *OllamaProvider) Complete(ctx context.Context, messages []Message) (stri
 
 // Stream generates a streaming response.
 func (p *OllamaProvider) Stream(ctx context.Context, messages []Message) (<-chan StreamEvent, error) {
+	slog.Debug("ollama stream request", "model", p.model, "message_count", len(messages))
+
 	reqBody := chatRequest{
 		Model:    p.model,
 		Messages: convertMessages(messages),

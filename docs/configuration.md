@@ -22,6 +22,8 @@ latis serve --config=/etc/latis/config.yaml
 ```yaml
 version: v1
 
+logLevel: info  # debug, info, warn, error
+
 server:
   addr: "[::]:4433"
 
@@ -63,6 +65,19 @@ version: v1
 ```
 
 Config file version. Currently only `v1` is supported.
+
+### logLevel
+
+```yaml
+logLevel: info
+```
+
+Log verbosity level. Valid values: `debug`, `info`, `warn`, `error`. Default: `info`.
+
+- **debug**: Detailed tracing (connection lifecycle, stream routing, internal state)
+- **info**: Normal operations (startup, ready, shutdown, requests served)
+- **warn**: Non-critical issues (shutdown timeouts, unknown stream types)
+- **error**: Failures (connection errors, request failures)
 
 ### server
 
@@ -190,6 +205,7 @@ All config options can be set via environment variables with `LATIS_` prefix:
 
 | Config Path | Environment Variable |
 |-------------|---------------------|
+| `logLevel` | `LATIS_LOG_LEVEL` |
 | `server.addr` | `LATIS_ADDR` |
 | `agent.name` | `LATIS_AGENT_NAME` |
 | `agent.description` | `LATIS_AGENT_DESCRIPTION` |

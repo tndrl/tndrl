@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"sync"
@@ -28,7 +28,7 @@ type ServeCmd struct{}
 
 // Run executes the serve command.
 func (c *ServeCmd) Run(cli *CLI) error {
-	log.Printf("latis starting on %s", cli.Server.Addr)
+	slog.Info("starting", "addr", cli.Server.Addr)
 
 	tlsConfig, err := setupServerTLS(cli)
 	if err != nil {
@@ -46,7 +46,7 @@ func (c *ServeCmd) Run(cli *CLI) error {
 	if err != nil {
 		return fmt.Errorf("create LLM provider: %w", err)
 	}
-	log.Printf("LLM provider: %s", provider.Name())
+	slog.Info("llm provider configured", "provider", provider.Name())
 
 	// Create and run server
 	srv := newServer(serverConfig{
@@ -63,7 +63,7 @@ func (c *ServeCmd) Run(cli *CLI) error {
 
 	go func() {
 		<-sigChan
-		log.Println("received shutdown signal")
+		slog.Info("shutdown signal received")
 		srv.shutdown()
 	}()
 
@@ -71,7 +71,7 @@ func (c *ServeCmd) Run(cli *CLI) error {
 		return fmt.Errorf("server error: %w", err)
 	}
 
-	log.Println("latis stopped")
+	slog.Info("stopped")
 	return nil
 }
 
@@ -127,9 +127,9 @@ func newServer(cfg serverConfig) *server {
 
 func (s *server) run() error {
 	s.state.SetReady()
-	log.Printf("ready, listening on %s (QUIC)", s.listener.Addr())
-	log.Printf("  control stream: 0x%02x", quictransport.StreamTypeControl)
-	log.Printf("  a2a stream:     0x%02x", quictransport.StreamTypeA2A)
+	slog.Info("ready", "addr", s.listener.Addr(), "transport", "QUIC")
+	slog.Debug("stream type registered", "type", "control", "id", fmt.Sprintf("0x%02x", quictransport.StreamTypeControl))
+	slog.Debug("stream type registered", "type", "a2a", "id", fmt.Sprintf("0x%02x", quictransport.StreamTypeA2A))
 
 	errChan := make(chan error, 2)
 
@@ -160,7 +160,7 @@ func (s *server) run() error {
 	// Wait for context cancellation or error
 	select {
 	case <-s.ctx.Done():
-		log.Println("shutdown signal received")
+		slog.Debug("context cancelled")
 	case err := <-errChan:
 		return err
 	}
@@ -181,14 +181,14 @@ func (s *server) stopServers(graceful bool) {
 }
 
 func (s *server) triggerShutdown(graceful bool, timeout time.Duration, reason string) {
-	log.Printf("shutdown requested: graceful=%v, timeout=%v, reason=%q", graceful, timeout, reason)
+	slog.Info("shutdown requested", "graceful", graceful, "timeout", timeout, "reason", reason)
 
 	s.state.SetDraining()
 
 	if graceful && timeout > 0 {
 		go func() {
 			time.Sleep(timeout)
-			log.Println("graceful shutdown timeout exceeded, forcing stop")
+			slog.Warn("graceful shutdown timeout exceeded, forcing stop")
 			s.controlServer.Stop()
 			s.a2aServer.Stop()
 		}()
@@ -238,13 +238,13 @@ func initializeServerPKI(cli *CLI) error {
 	var err error
 
 	if pki.CAExists(cli.PKI.Dir) {
-		log.Println("loading existing CA")
+		slog.Debug("loading existing CA", "dir", cli.PKI.Dir)
 		ca, err = pki.LoadCA(cli.PKI.CACert, cli.PKI.CAKey)
 		if err != nil {
 			return fmt.Errorf("load existing CA: %w", err)
 		}
 	} else {
-		log.Println("generating new CA")
+		slog.Info("generating new CA")
 		ca, err = pki.GenerateCA()
 		if err != nil {
 			return fmt.Errorf("generate CA: %w", err)
@@ -252,12 +252,12 @@ func initializeServerPKI(cli *CLI) error {
 		if err := ca.Save(cli.PKI.Dir); err != nil {
 			return fmt.Errorf("save CA: %w", err)
 		}
-		log.Printf("CA saved to %s", cli.PKI.Dir)
+		slog.Info("CA saved", "dir", cli.PKI.Dir)
 	}
 
 	// Check if cert exists
 	if pki.CertExists(cli.PKI.Cert, cli.PKI.Key) {
-		log.Println("certificate already exists")
+		slog.Debug("certificate already exists", "cert", cli.PKI.Cert)
 		return nil
 	}
 
@@ -267,7 +267,7 @@ func initializeServerPKI(cli *CLI) error {
 		name = uuid.New().String()[:8]
 	}
 
-	log.Printf("generating certificate (name=%s)", name)
+	slog.Info("generating certificate", "name", name)
 	identity := pki.UnitIdentity(name)
 	cert, err := pki.GenerateCert(ca, identity, true, true) // server + client
 	if err != nil {
@@ -277,7 +277,7 @@ func initializeServerPKI(cli *CLI) error {
 	if err := cert.Save(cli.PKI.Cert, cli.PKI.Key); err != nil {
 		return fmt.Errorf("save cert: %w", err)
 	}
-	log.Printf("certificate saved to %s", cli.PKI.Cert)
+	slog.Info("certificate saved", "path", cli.PKI.Cert)
 
 	return nil
 }

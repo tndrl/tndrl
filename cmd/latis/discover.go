@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/a2aproject/a2a-go/a2aclient"
@@ -17,7 +17,7 @@ type DiscoverCmd struct {
 // Run executes the discover command.
 func (c *DiscoverCmd) Run(cli *CLI) error {
 	addr := cli.ResolvePeer(c.Peer)
-	log.Printf("discovering %s", addr)
+	slog.Debug("discovering peer", "addr", addr)
 
 	conn, err := ConnectToPeer(cli, addr)
 	if err != nil {

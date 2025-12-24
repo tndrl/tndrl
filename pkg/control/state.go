@@ -2,6 +2,7 @@
 package control
 
 import (
+	"log/slog"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -34,16 +35,19 @@ func NewState(identity string) *State {
 // SetReady transitions to READY state.
 func (s *State) SetReady() {
 	s.state.Store(int32(latisv1.NodeState_NODE_STATE_READY))
+	slog.Debug("state transition", "state", "READY")
 }
 
 // SetDraining transitions to DRAINING state.
 func (s *State) SetDraining() {
 	s.state.Store(int32(latisv1.NodeState_NODE_STATE_DRAINING))
+	slog.Debug("state transition", "state", "DRAINING")
 }
 
 // SetStopped transitions to STOPPED state.
 func (s *State) SetStopped() {
 	s.state.Store(int32(latisv1.NodeState_NODE_STATE_STOPPED))
+	slog.Debug("state transition", "state", "STOPPED")
 }
 
 // IncrementTasks increments active task count and sets BUSY if currently READY.

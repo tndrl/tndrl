@@ -3,6 +3,7 @@ package a2aexec
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 
 	"github.com/a2aproject/a2a-go/a2a"
@@ -36,6 +37,7 @@ func (e *Executor) Execute(ctx context.Context, reqCtx *a2asrv.RequestContext, q
 
 	// Extract text content from the message
 	content := extractTextContent(msg)
+	slog.Debug("executing message", "task_id", reqCtx.TaskID, "streaming", e.Streaming, "content_length", len(content))
 
 	// Convert to LLM message format
 	messages := []llm.Message{
@@ -125,6 +127,7 @@ func (e *Executor) executeStreaming(ctx context.Context, reqCtx *a2asrv.RequestC
 
 // writeError writes an error status update to the queue.
 func (e *Executor) writeError(ctx context.Context, reqCtx *a2asrv.RequestContext, q eventqueue.Queue, err error) error {
+	slog.Error("task execution failed", "task_id", reqCtx.TaskID, "err", err)
 	failEvent := a2a.NewStatusUpdateEvent(reqCtx, a2a.TaskStateFailed, &a2a.Message{
 		Role: a2a.MessageRoleAgent,
 		Parts: []a2a.Part{
@@ -138,6 +141,7 @@ func (e *Executor) writeError(ctx context.Context, reqCtx *a2asrv.RequestContext
 // Cancel implements a2asrv.AgentExecutor.
 // For now, it simply acknowledges the cancellation request.
 func (e *Executor) Cancel(ctx context.Context, reqCtx *a2asrv.RequestContext, q eventqueue.Queue) error {
+	slog.Info("task cancelled", "task_id", reqCtx.TaskID)
 	event := a2a.NewStatusUpdateEvent(reqCtx, a2a.TaskStateCanceled, nil)
 	event.Final = true
 	return q.Write(ctx, event)

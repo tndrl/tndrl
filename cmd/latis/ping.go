@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
@@ -17,7 +17,7 @@ type PingCmd struct {
 // Run executes the ping command.
 func (c *PingCmd) Run(cli *CLI) error {
 	addr := cli.ResolvePeer(c.Peer)
-	log.Printf("pinging %s", addr)
+	slog.Debug("pinging peer", "addr", addr)
 
 	conn, err := ConnectToPeer(cli, addr)
 	if err != nil {

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/a2aproject/a2a-go/a2a"
 	"github.com/a2aproject/a2a-go/a2aclient"
@@ -19,7 +19,7 @@ type PromptCmd struct {
 // Run executes the prompt command.
 func (c *PromptCmd) Run(cli *CLI) error {
 	addr := cli.ResolvePeer(c.Peer)
-	log.Printf("sending prompt to %s", addr)
+	slog.Debug("sending prompt", "addr", addr, "streaming", c.Stream)
 
 	conn, err := ConnectToPeer(cli, addr)
 	if err != nil {

@@ -21,8 +21,9 @@ const ConfigVersion = "v1"
 // It serves as the single source of truth for CLI flags, env vars, and config files.
 type CLI struct {
 	// Global flags (shared across all subcommands)
-	Config  string `short:"c" help:"Path to config file" type:"path" yaml:"-"`
-	Verbose bool   `short:"v" help:"Verbose output" yaml:"-"`
+	Config   string `short:"c" help:"Path to config file" type:"path" yaml:"-"`
+	LogLevel string `help:"Log level (debug, info, warn, error)" default:"info" env:"LATIS_LOG_LEVEL" yaml:"logLevel"`
+	Verbose  bool   `short:"v" help:"Verbose output (same as --log-level=debug)" yaml:"-"`
 
 	// Embedded config (populated from file + CLI + env)
 	Version string       `yaml:"version" kong:"-"`

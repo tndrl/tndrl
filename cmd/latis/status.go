@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 
 	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
 )
@@ -16,7 +16,7 @@ type StatusCmd struct {
 // Run executes the status command.
 func (c *StatusCmd) Run(cli *CLI) error {
 	addr := cli.ResolvePeer(c.Peer)
-	log.Printf("getting status from %s", addr)
+	slog.Debug("getting status", "addr", addr)
 
 	conn, err := ConnectToPeer(cli, addr)
 	if err != nil {

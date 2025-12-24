@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"sync"
 
@@ -86,7 +87,9 @@ func (l *MuxListener) acceptLoop() {
 
 // handleConnection accepts streams from a connection and routes them by type.
 func (l *MuxListener) handleConnection(muxConn *MuxConn) {
+	slog.Debug("handling connection", "remote", muxConn.RemoteAddr())
 	defer func() {
+		slog.Debug("connection handler done", "remote", muxConn.RemoteAddr())
 		l.mu.Lock()
 		delete(l.conns, muxConn)
 		l.mu.Unlock()
@@ -97,10 +100,12 @@ func (l *MuxListener) handleConnection(muxConn *MuxConn) {
 		if err != nil {
 			// Connection closed or context canceled
 			if !errors.Is(err, context.Canceled) {
-				// Log or handle error if needed
+				slog.Debug("accept stream error", "err", err)
 			}
 			return
 		}
+
+		slog.Debug("stream accepted", "type", streamType, "remote", conn.RemoteAddr())
 
 		l.mu.Lock()
 		streamChan, ok := l.streams[streamType]
@@ -108,6 +113,7 @@ func (l *MuxListener) handleConnection(muxConn *MuxConn) {
 
 		if !ok {
 			// Unknown stream type, close the stream
+			slog.Warn("unknown stream type", "type", streamType)
 			conn.Close()
 			continue
 		}

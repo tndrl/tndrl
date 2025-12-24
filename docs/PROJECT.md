@@ -112,6 +112,17 @@ LLM integration complete (Ollama). Next: enable agents to execute tools and main
 - [x] Renamed `UnitIdentity` → `NodeIdentity` (kept deprecated alias)
 - [x] Fixed undefined `pki.CmdrIdentity` bug in tests
 
+### Structured Logging (PR #22)
+- [x] Created `cmd/latis/logging.go` with `setupLogger()` for slog configuration
+- [x] Added `--log-level` flag (debug, info, warn, error) and `-v`/`--verbose` shortcut
+- [x] Migrated all `log.Printf/Println` to structured `slog` calls in cmd/latis/
+- [x] Added logging to `pkg/control/` (RPC handlers, state transitions)
+- [x] Added logging to `pkg/a2aexec/` (message execution, errors, cancellation)
+- [x] Added logging to `pkg/llm/ollama.go` (API requests, errors)
+- [x] Added logging to `pkg/transport/quic/` (connection lifecycle, stream routing)
+- [x] Updated `docs/cli.md` with `--log-level` flag
+- [x] Updated `docs/configuration.md` with `logLevel` config option
+
 ## Next Steps
 
 1. **Tool execution framework**

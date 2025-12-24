@@ -3,7 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
 	"os"
 	"path/filepath"
@@ -123,7 +123,7 @@ func initializeClientPKI(cli *CLI) error {
 
 	// Check if cert already exists
 	if pki.CertExists(cli.PKI.Cert, cli.PKI.Key) {
-		log.Println("certificate already exists")
+		slog.Debug("certificate already exists", "cert", cli.PKI.Cert)
 		return nil
 	}
 
@@ -139,12 +139,12 @@ func initializeClientPKI(cli *CLI) error {
 	}
 
 	// Generate certificate (client + server for peer-to-peer)
-	log.Println("generating certificate")
 	// Use a unique node identity based on hostname
 	hostname, _ := os.Hostname()
 	if hostname == "" {
 		hostname = "client"
 	}
+	slog.Info("generating certificate", "hostname", hostname)
 	identity := pki.NodeIdentity(hostname)
 	cert, err := pki.GenerateCert(ca, identity, true, true)
 	if err != nil {
@@ -154,7 +154,7 @@ func initializeClientPKI(cli *CLI) error {
 	if err := cert.Save(cli.PKI.Cert, cli.PKI.Key); err != nil {
 		return fmt.Errorf("save cert: %w", err)
 	}
-	log.Printf("certificate saved to %s", cli.PKI.Cert)
+	slog.Info("certificate saved", "path", cli.PKI.Cert)
 
 	return nil
 }
