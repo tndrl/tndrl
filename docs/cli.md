@@ -94,8 +94,8 @@ latis status <peer>
 #### Output
 
 ```
-Unit Status:
-  Identity: spiffe://latis/unit/abc123
+Node Status:
+  Identity: spiffe://latis/node/abc123
   State: READY
   Uptime: 120s
 ```

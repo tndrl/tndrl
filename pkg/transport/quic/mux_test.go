@@ -19,12 +19,12 @@ func setupTestTLS(t *testing.T) (serverConfig, clientConfig *tls.Config) {
 		t.Fatalf("generate CA: %v", err)
 	}
 
-	serverCert, err := pki.GenerateCert(ca, pki.UnitIdentity("test-unit"), true, false)
+	serverCert, err := pki.GenerateCert(ca, pki.NodeIdentity("test-server"), true, false)
 	if err != nil {
 		t.Fatalf("generate server cert: %v", err)
 	}
 
-	clientCert, err := pki.GenerateCert(ca, pki.CmdrIdentity(), false, true)
+	clientCert, err := pki.GenerateCert(ca, pki.NodeIdentity("test-client"), false, true)
 	if err != nil {
 		t.Fatalf("generate client cert: %v", err)
 	}

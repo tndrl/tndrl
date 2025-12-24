@@ -1,6 +1,6 @@
 // latis/v1/control.proto
 //
-// Control plane protocol for unit lifecycle and health management.
+// Control plane protocol for node lifecycle and health management.
 //
 // This protocol runs on a dedicated QUIC stream, separate from A2A agent
 // communication. It handles:
@@ -15,16 +15,16 @@ package latis.v1;
 
 option go_package = "github.com/shanemcd/latis/gen/go/latis/v1;latisv1";
 
-// ControlService handles control plane operations for units.
+// ControlService handles control plane operations for nodes.
 // This is separate from agent communication (A2A) and runs on its own stream.
 service ControlService {
   // Ping checks health and measures latency.
   rpc Ping(PingRequest) returns (PingResponse);
 
-  // GetStatus returns the current status of the unit.
+  // GetStatus returns the current status of the node.
   rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
 
-  // Shutdown requests graceful termination of the unit.
+  // Shutdown requests graceful termination of the node.
   rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
 }
 
@@ -52,11 +52,11 @@ message PingResponse {
 message GetStatusRequest {}
 
 message GetStatusResponse {
-  // Unit identity (SPIFFE URI).
+  // Node identity (SPIFFE URI).
   string identity = 1;
 
-  // Current state of the unit.
-  UnitState state = 2;
+  // Current state of the node.
+  NodeState state = 2;
 
   // Uptime in seconds.
   int64 uptime_seconds = 3;
@@ -68,13 +68,13 @@ message GetStatusResponse {
   map<string, string> metadata = 5;
 }
 
-enum UnitState {
-  UNIT_STATE_UNSPECIFIED = 0;
-  UNIT_STATE_STARTING = 1;
-  UNIT_STATE_READY = 2;
-  UNIT_STATE_BUSY = 3;
-  UNIT_STATE_DRAINING = 4;
-  UNIT_STATE_STOPPED = 5;
+enum NodeState {
+  NODE_STATE_UNSPECIFIED = 0;
+  NODE_STATE_STARTING = 1;
+  NODE_STATE_READY = 2;
+  NODE_STATE_BUSY = 3;
+  NODE_STATE_DRAINING = 4;
+  NODE_STATE_STOPPED = 5;
 }
 
 // =============================================================================

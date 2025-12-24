@@ -1,4 +1,4 @@
-// Package a2aexec implements the A2A AgentExecutor interface for Latis units.
+// Package a2aexec implements the A2A AgentExecutor interface for Latis nodes.
 package a2aexec
 
 import (
@@ -12,7 +12,7 @@ import (
 	"github.com/shanemcd/latis/pkg/llm"
 )
 
-// Executor implements a2asrv.AgentExecutor for Latis units.
+// Executor implements a2asrv.AgentExecutor for Latis nodes.
 // It handles incoming A2A messages and produces responses using an LLM provider.
 type Executor struct {
 	// Provider is the LLM provider to use. If nil, an echo provider is used.

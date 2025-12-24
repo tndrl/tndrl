@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-// ServerConfig holds configuration for an A2A-compatible unit server.
+// ServerConfig holds configuration for an A2A-compatible node server.
 type ServerConfig struct {
 	// Executor handles incoming A2A messages.
 	Executor *Executor

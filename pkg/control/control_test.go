@@ -30,7 +30,7 @@ func TestPing(t *testing.T) {
 }
 
 func TestGetStatus(t *testing.T) {
-	state := NewState("spiffe://latis/unit/test-unit")
+	state := NewState("spiffe://latis/node/test-node")
 	state.SetReady()
 	state.SetMetadata("version", "1.0.0")
 
@@ -41,10 +41,10 @@ func TestGetStatus(t *testing.T) {
 		t.Fatalf("GetStatus failed: %v", err)
 	}
 
-	if resp.Identity != "spiffe://latis/unit/test-unit" {
-		t.Errorf("expected identity 'spiffe://latis/unit/test-unit', got %v", resp.Identity)
+	if resp.Identity != "spiffe://latis/node/test-node" {
+		t.Errorf("expected identity 'spiffe://latis/node/test-node', got %v", resp.Identity)
 	}
-	if resp.State != latisv1.UnitState_UNIT_STATE_READY {
+	if resp.State != latisv1.NodeState_NODE_STATE_READY {
 		t.Errorf("expected READY state, got %v", resp.State)
 	}
 	if resp.ActiveTasks != 0 {

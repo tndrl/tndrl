@@ -90,7 +90,7 @@ exists := pki.CAExists("/path/to/pki")
 
 ```go
 // Generate certificate signed by CA
-identity := pki.UnitIdentity("my-agent") // spiffe://latis/node/my-agent
+identity := pki.NodeIdentity("my-agent") // spiffe://latis/node/my-agent
 cert, err := pki.GenerateCert(ca, identity, isServer, isClient)
 
 // Load existing certificate

@@ -12,7 +12,7 @@ func TestGenerateCert(t *testing.T) {
 		t.Fatalf("GenerateCA() error = %v", err)
 	}
 
-	identity := "spiffe://latis/unit/test123"
+	identity := "spiffe://latis/node/test123"
 	cert, err := GenerateCert(ca, identity, true, true)
 	if err != nil {
 		t.Fatalf("GenerateCert() error = %v", err)
@@ -40,7 +40,7 @@ func TestGenerateCert_ServerOnly(t *testing.T) {
 		t.Fatalf("GenerateCA() error = %v", err)
 	}
 
-	cert, err := GenerateCert(ca, "spiffe://latis/unit/server", true, false)
+	cert, err := GenerateCert(ca, "spiffe://latis/node/server", true, false)
 	if err != nil {
 		t.Fatalf("GenerateCert() error = %v", err)
 	}
@@ -70,7 +70,7 @@ func TestGenerateCert_ClientOnly(t *testing.T) {
 		t.Fatalf("GenerateCA() error = %v", err)
 	}
 
-	cert, err := GenerateCert(ca, "spiffe://latis/cmdr", false, true)
+	cert, err := GenerateCert(ca, "spiffe://latis/node/client", false, true)
 	if err != nil {
 		t.Fatalf("GenerateCert() error = %v", err)
 	}
@@ -100,7 +100,7 @@ func TestGenerateCert_Both(t *testing.T) {
 		t.Fatalf("GenerateCA() error = %v", err)
 	}
 
-	cert, err := GenerateCert(ca, "spiffe://latis/unit/both", true, true)
+	cert, err := GenerateCert(ca, "spiffe://latis/node/both", true, true)
 	if err != nil {
 		t.Fatalf("GenerateCert() error = %v", err)
 	}
@@ -130,7 +130,7 @@ func TestCertIdentity(t *testing.T) {
 		t.Fatalf("GenerateCA() error = %v", err)
 	}
 
-	identity := "spiffe://latis/unit/myid"
+	identity := "spiffe://latis/node/myid"
 	cert, err := GenerateCert(ca, identity, true, false)
 	if err != nil {
 		t.Fatalf("GenerateCert() error = %v", err)

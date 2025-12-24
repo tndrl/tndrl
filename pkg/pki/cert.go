@@ -24,7 +24,7 @@ type Cert struct {
 }
 
 // GenerateCert creates a new certificate signed by the CA.
-// identity is the SPIFFE URI (e.g., spiffe://latis/unit/abc123)
+// identity is the SPIFFE URI (e.g., spiffe://latis/node/abc123)
 // isServer enables server auth key usage
 // isClient enables client auth key usage
 func GenerateCert(ca *CA, identity string, isServer, isClient bool) (*Cert, error) {

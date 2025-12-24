@@ -1,6 +1,6 @@
 // latis/v1/control.proto
 //
-// Control plane protocol for unit lifecycle and health management.
+// Control plane protocol for node lifecycle and health management.
 //
 // This protocol runs on a dedicated QUIC stream, separate from A2A agent
 // communication. It handles:
@@ -39,14 +39,14 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// ControlService handles control plane operations for units.
+// ControlService handles control plane operations for nodes.
 // This is separate from agent communication (A2A) and runs on its own stream.
 type ControlServiceClient interface {
 	// Ping checks health and measures latency.
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
-	// GetStatus returns the current status of the unit.
+	// GetStatus returns the current status of the node.
 	GetStatus(ctx context.Context, in *GetStatusRequest, opts ...grpc.CallOption) (*GetStatusResponse, error)
-	// Shutdown requests graceful termination of the unit.
+	// Shutdown requests graceful termination of the node.
 	Shutdown(ctx context.Context, in *ShutdownRequest, opts ...grpc.CallOption) (*ShutdownResponse, error)
 }
 
@@ -92,14 +92,14 @@ func (c *controlServiceClient) Shutdown(ctx context.Context, in *ShutdownRequest
 // All implementations must embed UnimplementedControlServiceServer
 // for forward compatibility.
 //
-// ControlService handles control plane operations for units.
+// ControlService handles control plane operations for nodes.
 // This is separate from agent communication (A2A) and runs on its own stream.
 type ControlServiceServer interface {
 	// Ping checks health and measures latency.
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
-	// GetStatus returns the current status of the unit.
+	// GetStatus returns the current status of the node.
 	GetStatus(context.Context, *GetStatusRequest) (*GetStatusResponse, error)
-	// Shutdown requests graceful termination of the unit.
+	// Shutdown requests graceful termination of the node.
 	Shutdown(context.Context, *ShutdownRequest) (*ShutdownResponse, error)
 	mustEmbedUnimplementedControlServiceServer()
 }

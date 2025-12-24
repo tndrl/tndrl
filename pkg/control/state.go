@@ -1,4 +1,4 @@
-// Package control implements the ControlService for unit lifecycle management.
+// Package control implements the ControlService for node lifecycle management.
 package control
 
 import (
@@ -9,7 +9,7 @@ import (
 	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
 )
 
-// State tracks the runtime state of a unit.
+// State tracks the runtime state of a node.
 type State struct {
 	state       atomic.Int32
 	startTime   time.Time
@@ -27,31 +27,31 @@ func NewState(identity string) *State {
 		identity:  identity,
 		metadata:  make(map[string]string),
 	}
-	s.state.Store(int32(latisv1.UnitState_UNIT_STATE_STARTING))
+	s.state.Store(int32(latisv1.NodeState_NODE_STATE_STARTING))
 	return s
 }
 
 // SetReady transitions to READY state.
 func (s *State) SetReady() {
-	s.state.Store(int32(latisv1.UnitState_UNIT_STATE_READY))
+	s.state.Store(int32(latisv1.NodeState_NODE_STATE_READY))
 }
 
 // SetDraining transitions to DRAINING state.
 func (s *State) SetDraining() {
-	s.state.Store(int32(latisv1.UnitState_UNIT_STATE_DRAINING))
+	s.state.Store(int32(latisv1.NodeState_NODE_STATE_DRAINING))
 }
 
 // SetStopped transitions to STOPPED state.
 func (s *State) SetStopped() {
-	s.state.Store(int32(latisv1.UnitState_UNIT_STATE_STOPPED))
+	s.state.Store(int32(latisv1.NodeState_NODE_STATE_STOPPED))
 }
 
 // IncrementTasks increments active task count and sets BUSY if currently READY.
 func (s *State) IncrementTasks() {
 	s.activeTasks.Add(1)
 	s.state.CompareAndSwap(
-		int32(latisv1.UnitState_UNIT_STATE_READY),
-		int32(latisv1.UnitState_UNIT_STATE_BUSY),
+		int32(latisv1.NodeState_NODE_STATE_READY),
+		int32(latisv1.NodeState_NODE_STATE_BUSY),
 	)
 }
 
@@ -59,15 +59,15 @@ func (s *State) IncrementTasks() {
 func (s *State) DecrementTasks() {
 	if s.activeTasks.Add(-1) == 0 {
 		s.state.CompareAndSwap(
-			int32(latisv1.UnitState_UNIT_STATE_BUSY),
-			int32(latisv1.UnitState_UNIT_STATE_READY),
+			int32(latisv1.NodeState_NODE_STATE_BUSY),
+			int32(latisv1.NodeState_NODE_STATE_READY),
 		)
 	}
 }
 
-// GetState returns the current unit state enum.
-func (s *State) GetState() latisv1.UnitState {
-	return latisv1.UnitState(s.state.Load())
+// GetState returns the current node state enum.
+func (s *State) GetState() latisv1.NodeState {
+	return latisv1.NodeState(s.state.Load())
 }
 
 // GetActiveTasks returns the current active task count.

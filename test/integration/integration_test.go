@@ -48,7 +48,7 @@ func (s *testControlServer) Ping(ctx context.Context, req *latisv1.PingRequest) 
 func (s *testControlServer) GetStatus(ctx context.Context, req *latisv1.GetStatusRequest) (*latisv1.GetStatusResponse, error) {
 	return &latisv1.GetStatusResponse{
 		Identity:      s.identity,
-		State:         latisv1.UnitState_UNIT_STATE_READY,
+		State:         latisv1.NodeState_NODE_STATE_READY,
 		UptimeSeconds: int64(time.Since(s.startTime).Seconds()),
 		ActiveTasks:   s.activeTasks,
 		Metadata: map[string]string{
@@ -76,12 +76,12 @@ func setupMuxTestEnv(t *testing.T) *muxTestEnv {
 		t.Fatalf("GenerateCA: %v", err)
 	}
 
-	serverCert, err := pki.GenerateCert(ca, pki.UnitIdentity("test-mux"), true, false)
+	serverCert, err := pki.GenerateCert(ca, pki.NodeIdentity("test-mux"), true, false)
 	if err != nil {
 		t.Fatalf("GenerateCert for server: %v", err)
 	}
 
-	clientCert, err := pki.GenerateCert(ca, pki.CmdrIdentity(), false, true)
+	clientCert, err := pki.GenerateCert(ca, pki.NodeIdentity("test-client"), false, true)
 	if err != nil {
 		t.Fatalf("GenerateCert for client: %v", err)
 	}
@@ -101,7 +101,7 @@ func setupMuxTestEnv(t *testing.T) *muxTestEnv {
 	// Create and start Control gRPC server
 	controlServer := grpc.NewServer()
 	testControl := &testControlServer{
-		identity:   "spiffe://latis/unit/test-mux",
+		identity:   "spiffe://latis/node/test-mux",
 		shutdownCh: make(chan struct{}, 1),
 		startTime:  time.Now(),
 	}
@@ -117,8 +117,8 @@ func setupMuxTestEnv(t *testing.T) *muxTestEnv {
 	a2aexec.RegisterWithGRPC(a2aServer, &a2aexec.ServerConfig{
 		Executor: executor,
 		AgentCard: &a2a.AgentCard{
-			Name:               "test-unit",
-			Description:        "Test Unit",
+			Name:               "test-node",
+			Description:        "Test Node",
 			URL:                listener.Addr().String(),
 			PreferredTransport: a2a.TransportProtocolGRPC,
 			DefaultInputModes:  []string{"text"},
@@ -250,11 +250,11 @@ func TestControlGetStatus(t *testing.T) {
 		t.Fatalf("GetStatus: %v", err)
 	}
 
-	if resp.Identity != "spiffe://latis/unit/test-mux" {
-		t.Errorf("Identity = %q, want %q", resp.Identity, "spiffe://latis/unit/test-mux")
+	if resp.Identity != "spiffe://latis/node/test-mux" {
+		t.Errorf("Identity = %q, want %q", resp.Identity, "spiffe://latis/node/test-mux")
 	}
 
-	if resp.State != latisv1.UnitState_UNIT_STATE_READY {
+	if resp.State != latisv1.NodeState_NODE_STATE_READY {
 		t.Errorf("State = %v, want READY", resp.State)
 	}
 
@@ -262,7 +262,7 @@ func TestControlGetStatus(t *testing.T) {
 		t.Errorf("Metadata[test] = %q, want %q", resp.Metadata["test"], "true")
 	}
 
-	t.Logf("Unit status: identity=%s, state=%v, uptime=%ds", resp.Identity, resp.State, resp.UptimeSeconds)
+	t.Logf("Node status: identity=%s, state=%v, uptime=%ds", resp.Identity, resp.State, resp.UptimeSeconds)
 }
 
 func TestControlShutdown(t *testing.T) {
@@ -381,7 +381,7 @@ func TestConnectionRequiresMTLS(t *testing.T) {
 		t.Fatalf("GenerateCA: %v", err)
 	}
 
-	wrongClientCert, err := pki.GenerateCert(wrongCA, pki.CmdrIdentity(), false, true)
+	wrongClientCert, err := pki.GenerateCert(wrongCA, pki.NodeIdentity("wrong-client"), false, true)
 	if err != nil {
 		t.Fatalf("GenerateCert: %v", err)
 	}
@@ -490,8 +490,8 @@ func TestA2AGetAgentCard(t *testing.T) {
 		t.Fatalf("GetAgentCard: %v", err)
 	}
 
-	if card.Name != "test-unit" {
-		t.Errorf("Name = %q, want %q", card.Name, "test-unit")
+	if card.Name != "test-node" {
+		t.Errorf("Name = %q, want %q", card.Name, "test-node")
 	}
 
 	if card.PreferredTransport != a2a.TransportProtocolGRPC {
@@ -599,7 +599,7 @@ func TestWrongCleanupOrderHangs(t *testing.T) {
 	// It demonstrates the bug that was in cmd/latis-unit/main.go.
 
 	ca, _ := pki.GenerateCA()
-	serverCert, _ := pki.GenerateCert(ca, pki.UnitIdentity("test"), true, false)
+	serverCert, _ := pki.GenerateCert(ca, pki.NodeIdentity("test"), true, false)
 	serverTLS, _ := pki.ServerTLSConfig(serverCert, ca)
 
 	listener, err := quictransport.ListenMux("127.0.0.1:0", serverTLS, nil)

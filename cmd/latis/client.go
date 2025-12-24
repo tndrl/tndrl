@@ -140,7 +140,12 @@ func initializeClientPKI(cli *CLI) error {
 
 	// Generate certificate (client + server for peer-to-peer)
 	log.Println("generating certificate")
-	identity := pki.CmdrIdentity()
+	// Use a unique node identity based on hostname
+	hostname, _ := os.Hostname()
+	if hostname == "" {
+		hostname = "client"
+	}
+	identity := pki.NodeIdentity(hostname)
 	cert, err := pki.GenerateCert(ca, identity, true, true)
 	if err != nil {
 		return fmt.Errorf("generate cert: %w", err)

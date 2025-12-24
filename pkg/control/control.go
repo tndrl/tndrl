@@ -34,7 +34,7 @@ func (s *Server) Ping(ctx context.Context, req *latisv1.PingRequest) (*latisv1.P
 	}, nil
 }
 
-// GetStatus returns the current status of the unit.
+// GetStatus returns the current status of the node.
 func (s *Server) GetStatus(ctx context.Context, req *latisv1.GetStatusRequest) (*latisv1.GetStatusResponse, error) {
 	return &latisv1.GetStatusResponse{
 		Identity:      s.state.GetIdentity(),
@@ -45,14 +45,14 @@ func (s *Server) GetStatus(ctx context.Context, req *latisv1.GetStatusRequest) (
 	}, nil
 }
 
-// Shutdown requests graceful termination of the unit.
+// Shutdown requests graceful termination of the node.
 func (s *Server) Shutdown(ctx context.Context, req *latisv1.ShutdownRequest) (*latisv1.ShutdownResponse, error) {
 	currentState := s.state.GetState()
-	if currentState == latisv1.UnitState_UNIT_STATE_DRAINING ||
-		currentState == latisv1.UnitState_UNIT_STATE_STOPPED {
+	if currentState == latisv1.NodeState_NODE_STATE_DRAINING ||
+		currentState == latisv1.NodeState_NODE_STATE_STOPPED {
 		return &latisv1.ShutdownResponse{
 			Accepted:        false,
-			RejectionReason: "unit is already shutting down",
+			RejectionReason: "node is already shutting down",
 		}, nil
 	}
 

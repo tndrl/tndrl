@@ -9,12 +9,11 @@ const (
 	TrustDomain = "latis"
 )
 
-// CmdrIdentity returns the SPIFFE identity URI for the cmdr.
-func CmdrIdentity() string {
-	return fmt.Sprintf("spiffe://%s/cmdr", TrustDomain)
+// NodeIdentity returns the SPIFFE identity URI for a node with the given ID.
+func NodeIdentity(id string) string {
+	return fmt.Sprintf("spiffe://%s/node/%s", TrustDomain, id)
 }
 
-// UnitIdentity returns the SPIFFE identity URI for a unit with the given ID.
-func UnitIdentity(id string) string {
-	return fmt.Sprintf("spiffe://%s/unit/%s", TrustDomain, id)
-}
+// UnitIdentity is deprecated, use NodeIdentity instead.
+// Kept for backwards compatibility during transition.
+var UnitIdentity = NodeIdentity

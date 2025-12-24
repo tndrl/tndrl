@@ -13,8 +13,8 @@ func TestRegisterWithGRPC(t *testing.T) {
 	cfg := &ServerConfig{
 		Executor: NewExecutor(),
 		AgentCard: &a2a.AgentCard{
-			Name:               "test-unit",
-			Description:        "A test unit",
+			Name:               "test-node",
+			Description:        "A test node",
 			URL:                "localhost:4433",
 			PreferredTransport: a2a.TransportProtocolGRPC,
 			DefaultInputModes:  []string{"text"},

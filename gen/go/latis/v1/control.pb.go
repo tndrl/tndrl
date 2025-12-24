@@ -1,6 +1,6 @@
 // latis/v1/control.proto
 //
-// Control plane protocol for unit lifecycle and health management.
+// Control plane protocol for node lifecycle and health management.
 //
 // This protocol runs on a dedicated QUIC stream, separate from A2A agent
 // communication. It handles:
@@ -32,61 +32,61 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type UnitState int32
+type NodeState int32
 
 const (
-	UnitState_UNIT_STATE_UNSPECIFIED UnitState = 0
-	UnitState_UNIT_STATE_STARTING    UnitState = 1
-	UnitState_UNIT_STATE_READY       UnitState = 2
-	UnitState_UNIT_STATE_BUSY        UnitState = 3
-	UnitState_UNIT_STATE_DRAINING    UnitState = 4
-	UnitState_UNIT_STATE_STOPPED     UnitState = 5
+	NodeState_NODE_STATE_UNSPECIFIED NodeState = 0
+	NodeState_NODE_STATE_STARTING    NodeState = 1
+	NodeState_NODE_STATE_READY       NodeState = 2
+	NodeState_NODE_STATE_BUSY        NodeState = 3
+	NodeState_NODE_STATE_DRAINING    NodeState = 4
+	NodeState_NODE_STATE_STOPPED     NodeState = 5
 )
 
-// Enum value maps for UnitState.
+// Enum value maps for NodeState.
 var (
-	UnitState_name = map[int32]string{
-		0: "UNIT_STATE_UNSPECIFIED",
-		1: "UNIT_STATE_STARTING",
-		2: "UNIT_STATE_READY",
-		3: "UNIT_STATE_BUSY",
-		4: "UNIT_STATE_DRAINING",
-		5: "UNIT_STATE_STOPPED",
+	NodeState_name = map[int32]string{
+		0: "NODE_STATE_UNSPECIFIED",
+		1: "NODE_STATE_STARTING",
+		2: "NODE_STATE_READY",
+		3: "NODE_STATE_BUSY",
+		4: "NODE_STATE_DRAINING",
+		5: "NODE_STATE_STOPPED",
 	}
-	UnitState_value = map[string]int32{
-		"UNIT_STATE_UNSPECIFIED": 0,
-		"UNIT_STATE_STARTING":    1,
-		"UNIT_STATE_READY":       2,
-		"UNIT_STATE_BUSY":        3,
-		"UNIT_STATE_DRAINING":    4,
-		"UNIT_STATE_STOPPED":     5,
+	NodeState_value = map[string]int32{
+		"NODE_STATE_UNSPECIFIED": 0,
+		"NODE_STATE_STARTING":    1,
+		"NODE_STATE_READY":       2,
+		"NODE_STATE_BUSY":        3,
+		"NODE_STATE_DRAINING":    4,
+		"NODE_STATE_STOPPED":     5,
 	}
 )
 
-func (x UnitState) Enum() *UnitState {
-	p := new(UnitState)
+func (x NodeState) Enum() *NodeState {
+	p := new(NodeState)
 	*p = x
 	return p
 }
 
-func (x UnitState) String() string {
+func (x NodeState) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (UnitState) Descriptor() protoreflect.EnumDescriptor {
+func (NodeState) Descriptor() protoreflect.EnumDescriptor {
 	return file_latis_v1_control_proto_enumTypes[0].Descriptor()
 }
 
-func (UnitState) Type() protoreflect.EnumType {
+func (NodeState) Type() protoreflect.EnumType {
 	return &file_latis_v1_control_proto_enumTypes[0]
 }
 
-func (x UnitState) Number() protoreflect.EnumNumber {
+func (x NodeState) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use UnitState.Descriptor instead.
-func (UnitState) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use NodeState.Descriptor instead.
+func (NodeState) EnumDescriptor() ([]byte, []int) {
 	return file_latis_v1_control_proto_rawDescGZIP(), []int{0}
 }
 
@@ -227,10 +227,10 @@ func (*GetStatusRequest) Descriptor() ([]byte, []int) {
 
 type GetStatusResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Unit identity (SPIFFE URI).
+	// Node identity (SPIFFE URI).
 	Identity string `protobuf:"bytes,1,opt,name=identity,proto3" json:"identity,omitempty"`
-	// Current state of the unit.
-	State UnitState `protobuf:"varint,2,opt,name=state,proto3,enum=latis.v1.UnitState" json:"state,omitempty"`
+	// Current state of the node.
+	State NodeState `protobuf:"varint,2,opt,name=state,proto3,enum=latis.v1.NodeState" json:"state,omitempty"`
 	// Uptime in seconds.
 	UptimeSeconds int64 `protobuf:"varint,3,opt,name=uptime_seconds,json=uptimeSeconds,proto3" json:"uptime_seconds,omitempty"`
 	// Number of active tasks.
@@ -278,11 +278,11 @@ func (x *GetStatusResponse) GetIdentity() string {
 	return ""
 }
 
-func (x *GetStatusResponse) GetState() UnitState {
+func (x *GetStatusResponse) GetState() NodeState {
 	if x != nil {
 		return x.State
 	}
-	return UnitState_UNIT_STATE_UNSPECIFIED
+	return NodeState_NODE_STATE_UNSPECIFIED
 }
 
 func (x *GetStatusResponse) GetUptimeSeconds() int64 {
@@ -436,7 +436,7 @@ const file_latis_v1_control_proto_rawDesc = "" +
 	"\x10GetStatusRequest\"\xa8\x02\n" +
 	"\x11GetStatusResponse\x12\x1a\n" +
 	"\bidentity\x18\x01 \x01(\tR\bidentity\x12)\n" +
-	"\x05state\x18\x02 \x01(\x0e2\x13.latis.v1.UnitStateR\x05state\x12%\n" +
+	"\x05state\x18\x02 \x01(\x0e2\x13.latis.v1.NodeStateR\x05state\x12%\n" +
 	"\x0euptime_seconds\x18\x03 \x01(\x03R\ruptimeSeconds\x12!\n" +
 	"\factive_tasks\x18\x04 \x01(\x05R\vactiveTasks\x12E\n" +
 	"\bmetadata\x18\x05 \x03(\v2).latis.v1.GetStatusResponse.MetadataEntryR\bmetadata\x1a;\n" +
@@ -450,13 +450,13 @@ const file_latis_v1_control_proto_rawDesc = "" +
 	"\x10ShutdownResponse\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\x12)\n" +
 	"\x10rejection_reason\x18\x02 \x01(\tR\x0frejectionReason*\x9c\x01\n" +
-	"\tUnitState\x12\x1a\n" +
-	"\x16UNIT_STATE_UNSPECIFIED\x10\x00\x12\x17\n" +
-	"\x13UNIT_STATE_STARTING\x10\x01\x12\x14\n" +
-	"\x10UNIT_STATE_READY\x10\x02\x12\x13\n" +
-	"\x0fUNIT_STATE_BUSY\x10\x03\x12\x17\n" +
-	"\x13UNIT_STATE_DRAINING\x10\x04\x12\x16\n" +
-	"\x12UNIT_STATE_STOPPED\x10\x052\xd0\x01\n" +
+	"\tNodeState\x12\x1a\n" +
+	"\x16NODE_STATE_UNSPECIFIED\x10\x00\x12\x17\n" +
+	"\x13NODE_STATE_STARTING\x10\x01\x12\x14\n" +
+	"\x10NODE_STATE_READY\x10\x02\x12\x13\n" +
+	"\x0fNODE_STATE_BUSY\x10\x03\x12\x17\n" +
+	"\x13NODE_STATE_DRAINING\x10\x04\x12\x16\n" +
+	"\x12NODE_STATE_STOPPED\x10\x052\xd0\x01\n" +
 	"\x0eControlService\x125\n" +
 	"\x04Ping\x12\x15.latis.v1.PingRequest\x1a\x16.latis.v1.PingResponse\x12D\n" +
 	"\tGetStatus\x12\x1a.latis.v1.GetStatusRequest\x1a\x1b.latis.v1.GetStatusResponse\x12A\n" +
@@ -478,7 +478,7 @@ func file_latis_v1_control_proto_rawDescGZIP() []byte {
 var file_latis_v1_control_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_latis_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_latis_v1_control_proto_goTypes = []any{
-	(UnitState)(0),            // 0: latis.v1.UnitState
+	(NodeState)(0),            // 0: latis.v1.NodeState
 	(*PingRequest)(nil),       // 1: latis.v1.PingRequest
 	(*PingResponse)(nil),      // 2: latis.v1.PingResponse
 	(*GetStatusRequest)(nil),  // 3: latis.v1.GetStatusRequest
@@ -488,7 +488,7 @@ var file_latis_v1_control_proto_goTypes = []any{
 	nil,                       // 7: latis.v1.GetStatusResponse.MetadataEntry
 }
 var file_latis_v1_control_proto_depIdxs = []int32{
-	0, // 0: latis.v1.GetStatusResponse.state:type_name -> latis.v1.UnitState
+	0, // 0: latis.v1.GetStatusResponse.state:type_name -> latis.v1.NodeState
 	7, // 1: latis.v1.GetStatusResponse.metadata:type_name -> latis.v1.GetStatusResponse.MetadataEntry
 	1, // 2: latis.v1.ControlService.Ping:input_type -> latis.v1.PingRequest
 	3, // 3: latis.v1.ControlService.GetStatus:input_type -> latis.v1.GetStatusRequest
