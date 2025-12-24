@@ -34,6 +34,10 @@ latis serve [flags]
 | `--llm-model` | | Model name (required for ollama) |
 | `--llm-url` | | Provider API URL |
 | `--pki-dir` | `~/.latis/pki` | PKI directory |
+| `--pki-ca-cert` | `<pki-dir>/ca.crt` | CA certificate path |
+| `--pki-ca-key` | `<pki-dir>/ca.key` | CA private key path |
+| `--pki-cert` | `<pki-dir>/latis.crt` | Node certificate path |
+| `--pki-key` | `<pki-dir>/latis.key` | Node private key path |
 | `--pki-init` | `false` | Initialize PKI if missing |
 
 #### Examples

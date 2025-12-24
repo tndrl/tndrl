@@ -1,82 +1,120 @@
-# connector
+# Transport
 
-Transport abstraction layer for Latis. Connectors are spawned by cmdr and act as bidirectional proxies to units.
+Network transport layer for Latis node communication.
 
-## Process Model
+## Current Implementation
 
-Connectors run as child processes of cmdr:
-
-```
-┌────────────┐
-│    cmdr    │
-└─────┬──────┘
-      │ spawns
-      ↓
-┌────────────┐  stdin   ┌────────────┐
-│ connector  │ ←──────→ │    cmdr    │  (protocol messages)
-└─────┬──────┘  stdout  └────────────┘
-      │
-      │ transport (ssh, ws, etc.)
-      ↓
-┌────────────┐
-│    unit    │
-└────────────┘
-```
-
-1. cmdr spawns connector executable with target address as argument
-2. Connector establishes transport to the unit
-3. cmdr writes protocol messages to connector's stdin
-4. Connector forwards messages to unit over the transport
-5. Connector reads responses from unit, writes to stdout
-6. cmdr reads from connector's stdout
-
-## Responsibilities
-
-- **Transport bytes**: Move protocol messages between cmdr and units
-- **Connection lifecycle**: Establish, maintain, and teardown connections to units
-- **Bidirectional proxy**: Read from stdin → send to unit; receive from unit → write to stdout
-- **Pluggable**: Any transport mechanism can be a connector
-
-## Executable Interface
-
-Connectors are executables (any language) that follow this contract:
+Latis uses QUIC with mTLS for all node-to-node communication. This is implemented in `pkg/transport/quic/`.
 
 ```
-# Invocation
-latis-connector-<type> <address> [options]
-
-# Example
-latis-connector-ssh user@host:22
-latis-connector-ws wss://example.com/latis
-latis-connector-local /path/to/unit
-
-# I/O
-stdin  ← protocol messages from cmdr (newline-delimited JSON or similar)
-stdout → protocol messages to cmdr
-stderr → logging/diagnostics (not protocol)
+┌────────────┐                    ┌────────────┐
+│   latis    │                    │   latis    │
+│   (client) │                    │   (server) │
+└─────┬──────┘                    └─────┬──────┘
+      │                                 │
+      │ ←── QUIC + mTLS connection ───► │
+      │                                 │
+      │    ┌── Control stream ──────►   │
+      │    └── A2A stream ──────────►   │
+      │                                 │
 ```
 
-The connector doesn't understand the protocol messages — it just moves them. Serialization and deserialization happen at the protocol layer in cmdr and unit.
+## Key Components
 
-## Discovery
+### MuxDialer (Client)
 
-cmdr finds connectors via:
+Manages outbound connections with connection pooling.
 
-1. **Built-in**: Common connectors compiled into cmdr
-2. **PATH**: Executables named `latis-connector-*`
-3. **Plugin directory**: `~/.latis/connectors/`
+```go
+import quictransport "github.com/shanemcd/latis/pkg/transport/quic"
 
-## Planned Connectors
+// Create dialer with TLS config
+muxDialer := quictransport.NewMuxDialer(tlsConfig, nil)
+defer muxDialer.Close()
 
-- **ssh**: Shell into remote hosts, run unit, communicate via stdin/stdout
-- **local**: Spawn local unit process, communicate via stdin/stdout
-- **container**: Exec into containers (podman, docker)
-- **websocket**: Persistent bidirectional connections
-- **http**: Request/response for stateless interactions
+// Get Control stream dialer
+controlDialer := muxDialer.ControlDialer()
 
-## Design Notes
+// Get A2A stream dialer
+a2aDialer := muxDialer.A2ADialer()
 
-- Connectors are intentionally dumb — they know how to establish a channel and push bytes through it
-- Authentication and encryption are connector concerns (SSH handles auth, WebSocket can use TLS)
-- Protocol semantics are NOT connector concerns — cmdr and unit handle that
-- Connectors can be written in any language since they're separate executables
+// Both reuse the same underlying QUIC connection
+```
+
+### MuxListener (Server)
+
+Accepts inbound connections and routes streams by type.
+
+```go
+import quictransport "github.com/shanemcd/latis/pkg/transport/quic"
+
+// Start listener
+listener, err := quictransport.ListenMux(addr, tlsConfig, nil)
+defer listener.Close()
+
+// Get type-specific listeners for gRPC servers
+controlListener := listener.ControlListener()
+a2aListener := listener.A2AListener()
+
+// Route to separate gRPC servers
+go controlServer.Serve(controlListener)
+go a2aServer.Serve(a2aListener)
+```
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `stream_type.go` | StreamType constants (Control=0x01, A2A=0x02) |
+| `stream_conn.go` | Wraps QUIC stream as net.Conn |
+| `mux.go` | MuxConn for typed stream open/accept |
+| `mux_listener.go` | Server-side stream routing |
+| `mux_dialer.go` | Client-side connection pooling |
+
+## Design Decisions
+
+### Why QUIC?
+
+- **Multiplexed streams** — no head-of-line blocking
+- **Built-in TLS 1.3** — encrypted by default
+- **Connection migration** — survives network changes
+- **Faster handshake** — 0-RTT in many cases
+
+### Why direct connections?
+
+The current design uses direct QUIC connections between nodes. This is simple and works well for:
+
+- Local development (both nodes on same machine)
+- Direct network access (nodes can reach each other)
+- Controlled environments (VPN, overlay network)
+
+### Connection Pooling
+
+`MuxDialer` maintains a connection pool to avoid repeated handshakes:
+
+```go
+// Multiple calls reuse the same connection
+controlConn1 := muxDialer.ControlDialer()(ctx, addr)
+controlConn2 := muxDialer.ControlDialer()(ctx, addr)  // Same QUIC conn
+a2aConn := muxDialer.A2ADialer()(ctx, addr)           // Still same conn
+```
+
+## Future Considerations
+
+### NAT Traversal
+
+For nodes behind NAT, potential approaches:
+
+- **Relay nodes** — route through publicly accessible nodes
+- **STUN/TURN** — standard NAT traversal protocols
+- **Dial-back** — server initiates connection when client can't
+
+### Alternative Transports
+
+The gRPC layer is transport-agnostic. Future transports could include:
+
+- **WebSocket** — for browser clients or firewall traversal
+- **SSH** — for environments with existing SSH access
+- **Container exec** — for containerized agents
+
+These would implement the same stream multiplexing pattern.

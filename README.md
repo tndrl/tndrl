@@ -8,13 +8,20 @@ Latis provides a unified interface for orchestrating AI agents running across mu
 
 ```bash
 # Terminal 1: Start a node as a daemon
-latis serve --pki-init --llm-provider=echo
+latis serve -c examples/echo.yaml
 
-# Terminal 2: Interact with the node
+# Terminal 2: Interact with the node (using named peer from config)
+latis ping -c examples/echo.yaml local
+latis status -c examples/echo.yaml local
+latis prompt -c examples/echo.yaml local "Hello, what can you do?"
+latis discover -c examples/echo.yaml local
+```
+
+Or with CLI flags only (no config file):
+
+```bash
+latis serve --pki-init --llm-provider=echo
 latis ping localhost:4433
-latis status localhost:4433
-latis prompt localhost:4433 "Hello, what can you do?"
-latis discover localhost:4433
 ```
 
 ## Architecture

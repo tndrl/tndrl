@@ -1,73 +1,147 @@
-# unit
+# Server Mode
 
-The agent endpoint daemon for Latis.
+How a Latis node operates as a server (daemon mode).
+
+## Overview
+
+When you run `latis serve`, the node operates in server mode:
+
+- Listens for incoming connections
+- Handles Control protocol requests (ping, status, shutdown)
+- Handles A2A protocol requests (prompts, tasks)
+- Interfaces with an LLM provider to generate responses
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      latis serve                             │
+│                                                             │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────┐ │
+│  │   A2A       │    │   Control   │    │      LLM        │ │
+│  │   Server    │    │   Server    │    │    Provider     │ │
+│  └─────────────┘    └─────────────┘    └─────────────────┘ │
+│         │                  │                    │          │
+│         └──────────────────┼────────────────────┘          │
+│                            │                               │
+│                    ┌───────┴───────┐                       │
+│                    │  MuxListener  │                       │
+│                    │  (QUIC/mTLS)  │                       │
+│                    └───────────────┘                       │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ## Responsibilities
 
-- **Protocol handling**: Parse incoming messages, emit responses
-- **Agent wrapping**: Interface with underlying AI agents (Claude, GPT, local models, custom code)
-- **Session state**: Maintain conversation context and agent state
-- **Streaming**: Push response chunks back to cmdr in real-time
-- **Connection management**: Accept connections from cmdr OR dial out to cmdr
+| Component | Purpose |
+|-----------|---------|
+| **MuxListener** | Accept connections, route streams by type |
+| **Control Server** | Handle ping, status, shutdown requests |
+| **A2A Server** | Handle agent communication (prompts, tasks) |
+| **LLM Provider** | Generate responses via configured LLM |
 
-## Operation Modes
+## LLM Providers
 
-A unit can run as:
+The server interfaces with AI models via pluggable LLM providers:
 
-- **Daemon**: Long-running process accepting connections
-- **On-demand**: Spawned by provisioner, runs for session duration
-- **Embedded**: Library mode, integrated into other applications
+| Provider | Description |
+|----------|-------------|
+| `echo` | Returns input back (for testing) |
+| `ollama` | Connects to Ollama via OpenAI-compatible API |
 
-## Connection Direction
+```bash
+# Testing
+latis serve --pki-init --llm-provider=echo
 
-Units can connect to cmdr in two ways:
-
-```
-┌────────────┐                    ┌────────────┐
-│    cmdr    │ ──── dial-out ───→ │    unit    │   cmdr initiates (unit listens)
-└────────────┘                    └────────────┘
-
-┌────────────┐                    ┌────────────┐
-│    cmdr    │ ←─── dial-in ────  │    unit    │   unit initiates (cmdr listens)
-└────────────┘                    └────────────┘
+# Production
+latis serve --pki-init --llm-provider=ollama --llm-model=llama3.2
 ```
 
-**When cmdr dials out (unit listens):**
-- Unit exposes an endpoint (TCP, WebSocket, Unix socket)
-- cmdr connects to it
-- Works well for: local processes, accessible servers, VMs with known addresses
+Provider implementation: `pkg/llm/`
 
-**When unit dials out (cmdr listens):**
-- cmdr exposes a listener endpoint
-- Unit connects back to cmdr
-- Works well for: NAT traversal, firewalled environments, ephemeral cloud instances
+## A2A Executor
 
-**Constraint:** At least one connection method must be configured. A unit can support both (listen AND dial), and can have multiple listeners.
+The A2A server uses an executor (`pkg/a2aexec/`) to handle agent logic:
 
-## Protocol Messages Handled
+1. Receive message via A2A protocol
+2. Extract prompt content
+3. Call LLM provider for response
+4. Stream or return response via A2A
 
-```
-← session.create     → ack + session_id
-← session.resume     → ack + state
-← session.destroy    → ack
-← prompt.send        → response.chunk* + response.complete
-← prompt.cancel      → ack
-← state.get          → state.update
-← state.subscribe    → state.update*
+```go
+// Simplified flow
+func (e *Executor) SendMessage(ctx context.Context, req *a2a.SendMessageRequest) (*a2a.SendMessageResponse, error) {
+    prompt := extractPrompt(req.Message)
+    response, err := e.llmProvider.Generate(ctx, prompt)
+    return buildResponse(response), nil
+}
 ```
 
-## Agent Adapters
+## State Management
 
-Units don't implement AI directly — they wrap agents:
+The server tracks its operational state (`pkg/control/state.go`):
+
+| State | Meaning |
+|-------|---------|
+| `STARTING` | Initializing, not ready for requests |
+| `READY` | Accepting requests |
+| `BUSY` | Processing requests (may accept more) |
+| `DRAINING` | Finishing in-progress work, rejecting new requests |
+| `STOPPED` | Shutdown complete |
+
+State is exposed via `GetStatus` RPC.
+
+## Configuration
+
+Server behavior is controlled via config file or CLI flags:
+
+```yaml
+version: v1
+
+server:
+  addr: "[::]:4433"    # Listen address
+
+agent:
+  name: my-agent       # Agent name for AgentCard
+  description: "..."   # Agent description
+  streaming: true      # Enable streaming responses
+  skills: [...]        # Agent capabilities
+
+llm:
+  provider: ollama
+  model: llama3.2
+
+pki:
+  dir: ~/.latis/pki
+  init: true
+```
+
+See [docs/configuration.md](../configuration.md) for full reference.
+
+## Lifecycle
 
 ```
-unit
- └── agent adapter
-      └── actual agent (claude, gpt, llama, custom, etc.)
+1. Parse config and flags
+2. Initialize PKI (if --pki-init)
+3. Create LLM provider
+4. Start MuxListener
+5. Start Control and A2A gRPC servers
+6. Set state to READY
+7. Handle requests...
+8. On SIGINT/SIGTERM or Shutdown RPC:
+   a. Set state to DRAINING
+   b. Stop accepting new connections
+   c. Wait for in-progress requests
+   d. Set state to STOPPED
+   e. Exit
 ```
 
-The adapter interface is minimal: receive prompt, stream response, report state.
+## Signal Handling
 
-## Design Notes
+The server handles graceful shutdown on:
 
-Units are designed to be lightweight. They should be easy to deploy anywhere — a remote server, a container, a Raspberry Pi. The heavy lifting happens in the wrapped agent; the unit just handles protocol and plumbing.
+- `SIGINT` (Ctrl+C)
+- `SIGTERM` (container/system shutdown)
+- `Shutdown` RPC (remote request)
+
+In-progress requests are allowed to complete (with timeout).

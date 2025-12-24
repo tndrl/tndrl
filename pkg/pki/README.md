@@ -7,59 +7,64 @@ Certificate authority and mTLS certificate management for Latis.
 This package provides:
 - **CA management** — Generate or load a certificate authority
 - **Certificate generation** — Create certificates signed by the CA
-- **SPIFFE-compatible identities** — URIs like `spiffe://latis/unit/abc123`
+- **SPIFFE-compatible identities** — URIs like `spiffe://latis/node/abc123`
 - **TLS config builders** — Ready-to-use mTLS configurations
 
 ## Usage
 
-### Bootstrap (single machine)
+### Initialize PKI
 
 ```bash
-# Terminal 1: Initialize PKI and start unit
-latis-unit --init-pki
+# Start a node with PKI initialization
+latis serve -c config.yaml --pki-init
 
-# Terminal 2: Generate cmdr cert and connect
-latis --init-pki
+# Or use a config file with pki.init: true
 ```
 
 This creates `~/.latis/pki/` with:
 ```
 ca.crt      # CA certificate
-ca.key      # CA private key
-unit.crt    # Unit certificate (server)
-unit.key    # Unit private key
-cmdr.crt    # Cmdr certificate (client)
-cmdr.key    # Cmdr private key
+ca.key      # CA private key (only on first node)
+latis.crt   # Node certificate
+latis.key   # Node private key
 ```
 
-### Multi-machine deployment
+### Multi-Machine Deployment
 
 ```bash
-# On machine A: Generate CA and cmdr cert
-latis-unit --init-pki   # Creates CA + unit cert
-latis --init-pki        # Creates cmdr cert
+# On machine A: Generate CA and node cert
+latis serve -c config.yaml --pki-init
 
-# Copy CA to machine B
-scp ~/.latis/pki/ca.crt ~/.latis/pki/ca.key remote:~/.latis/pki/
+# Copy CA to machine B (but NOT ca.key unless needed)
+scp ~/.latis/pki/ca.crt remote:~/.latis/pki/
+scp ~/.latis/pki/ca.key remote:~/.latis/pki/   # Optional: only if B needs to issue certs
 
-# On machine B: Generate unit cert
-latis-unit --init-pki   # Uses existing CA, creates unit cert
+# On machine B: Generate node cert using existing CA
+latis serve -c config.yaml --pki-init
 ```
 
 ### Bring Your Own CA
 
 ```bash
-latis-unit --ca-cert /path/to/ca.crt --ca-key /path/to/ca.key --init-pki
+latis serve --pki-ca-cert /path/to/ca.crt --pki-ca-key /path/to/ca.key --pki-init
+```
+
+Or in config:
+```yaml
+pki:
+  dir: ~/.latis/pki
+  caCert: /path/to/ca.crt
+  caKey: /path/to/ca.key
+  init: true
 ```
 
 ## Certificate Identity
 
 Certificates include SPIFFE-compatible URIs in the Subject Alternative Name:
 
-| Component | Identity URI |
-|-----------|--------------|
-| cmdr | `spiffe://latis/cmdr` |
-| unit | `spiffe://latis/unit/<id>` |
+| Usage | Identity URI |
+|-------|--------------|
+| Node | `spiffe://latis/node/<name>` |
 
 This enables future integration with SPIFFE/SPIRE for automatic certificate management.
 
@@ -85,7 +90,7 @@ exists := pki.CAExists("/path/to/pki")
 
 ```go
 // Generate certificate signed by CA
-identity := pki.UnitIdentity("abc123") // spiffe://latis/unit/abc123
+identity := pki.UnitIdentity("my-agent") // spiffe://latis/node/my-agent
 cert, err := pki.GenerateCert(ca, identity, isServer, isClient)
 
 // Load existing certificate
@@ -115,3 +120,4 @@ tlsConfig, err := pki.ClientTLSConfig(clientCert, ca, "localhost")
 - **mTLS** — mutual authentication required
 - CA valid for 10 years, certificates valid for 1 year
 - Private keys stored with 0600 permissions
+- IP SANs include 127.0.0.1 and ::1 for localhost testing
