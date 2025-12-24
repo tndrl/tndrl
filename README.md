@@ -123,6 +123,7 @@ Latis requires an LLM provider to be configured:
 |----------|-------------|
 | `echo` | Echoes input (for testing) |
 | `ollama` | Connects to Ollama via OpenAI-compatible API |
+| `mcphost` | Full agentic loop with MCP tool support via [mcphost](https://github.com/mark3labs/mcphost) |
 
 ```bash
 # For testing
@@ -133,6 +134,9 @@ latis serve --pki-init --llm-provider=ollama --llm-model=llama3.2
 
 # With custom URL
 latis serve --pki-init --llm-provider=ollama --llm-model=llama3.2 --llm-url=http://ollama:11434/v1
+
+# With MCP tools (see examples/mcphost.yaml)
+latis serve -c examples/mcphost.yaml
 ```
 
 ## Security
