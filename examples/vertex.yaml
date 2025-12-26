@@ -1,0 +1,42 @@
+version: v1
+
+# Claude via Vertex AI configuration
+# Requires: gcloud auth application-default login
+# Environment: ANTHROPIC_VERTEX_PROJECT_ID, CLOUD_ML_REGION (optional)
+
+server:
+  addr: "[::]:4433"
+
+agent:
+  name: latis-vertex-agent
+  description: "Agent powered by Claude via Vertex AI"
+  streaming: true
+  skills:
+    - id: filesystem
+      name: Filesystem Operations
+      description: "Read, write, and manage files"
+      tags: [filesystem, tools]
+      examples:
+        - "List files in /tmp"
+        - "Read the contents of /etc/hostname"
+
+llm:
+  provider: mcphost
+  model: google-vertex-anthropic:claude-sonnet-4@20250514
+  systemPrompt: "You are a helpful assistant with access to filesystem tools."
+  maxSteps: 10
+
+  mcpServers:
+    filesystem:
+      type: builtin
+      name: fs
+      options:
+        allowed_directories:
+          - /tmp
+
+pki:
+  init: true
+
+peers:
+  - name: local
+    addr: localhost:4433
