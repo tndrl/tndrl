@@ -4,9 +4,11 @@ Current focus and progress for Latis development.
 
 ## Current Objective
 
-**Dynamic peer discovery**
+**Session management and environment provisioning**
 
-MCP tool integration complete (mcphost). Next: enable dynamic discovery of peers via DNS SRV or multicast.
+Enable orchestrating isolated agent environments with full lifecycle management. See [docs/design/sessions.md](./design/sessions.md) for the design.
+
+Core use case: "turn loose" an AI agent in a sandboxed container where it can iterate autonomously until it needs human input.
 
 ## Completed
 
@@ -135,13 +137,24 @@ MCP tool integration complete (mcphost). Next: enable dynamic discovery of peers
 
 ## Next Steps
 
-1. **Dynamic peer discovery**
+1. **Session management** (see [design/sessions.md](./design/sessions.md))
+   - Session lifecycle: create, list, attach, delete
+   - Conversation history persistence
+   - "Waiting for input" protocol
+
+2. **Environment drivers**
+   - Podman driver (first)
+   - Local driver (for testing)
+   - Kubernetes driver
+   - QEMU driver (stretch)
+
+3. **Workspace images**
+   - Base image with latis + shell tools
+   - Language-specific variants (go, python, node)
+
+4. **Deferred: Dynamic peer discovery**
    - DNS SRV records
    - Multicast/broadcast discovery
-
-2. **Conversation context/history**
-   - Maintain conversation state across A2A messages
-   - Session management for multi-turn interactions
 
 ## Architecture
 
