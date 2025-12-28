@@ -24,7 +24,7 @@ type Cert struct {
 }
 
 // GenerateCert creates a new certificate signed by the CA.
-// identity is the SPIFFE URI (e.g., spiffe://latis/node/abc123)
+// identity is the SPIFFE URI (e.g., spiffe://tndrl/node/abc123)
 // isServer enables server auth key usage
 // isClient enables client auth key usage
 func GenerateCert(ca *CA, identity string, isServer, isClient bool) (*Cert, error) {
@@ -47,7 +47,7 @@ func GenerateCert(ca *CA, identity string, isServer, isClient bool) (*Cert, erro
 	template := &x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			Organization: []string{"Latis"},
+			Organization: []string{"Tndrl"},
 			CommonName:   identity,
 		},
 		NotBefore: time.Now(),

@@ -14,7 +14,7 @@ managed:
   enabled: true
   override:
     - file_option: go_package_prefix
-      value: github.com/shanemcd/latis/gen/go
+      value: github.com/shanemcd/tndrl/gen/go
 plugins:
   - remote: buf.build/protocolbuffers/go
     out: gen/go

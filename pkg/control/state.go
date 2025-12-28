@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
+	tndrlv1 "github.com/shanemcd/tndrl/gen/go/tndrl/v1"
 )
 
 // State tracks the runtime state of a node.
@@ -28,25 +28,25 @@ func NewState(identity string) *State {
 		identity:  identity,
 		metadata:  make(map[string]string),
 	}
-	s.state.Store(int32(latisv1.NodeState_NODE_STATE_STARTING))
+	s.state.Store(int32(tndrlv1.NodeState_NODE_STATE_STARTING))
 	return s
 }
 
 // SetReady transitions to READY state.
 func (s *State) SetReady() {
-	s.state.Store(int32(latisv1.NodeState_NODE_STATE_READY))
+	s.state.Store(int32(tndrlv1.NodeState_NODE_STATE_READY))
 	slog.Debug("state transition", "state", "READY")
 }
 
 // SetDraining transitions to DRAINING state.
 func (s *State) SetDraining() {
-	s.state.Store(int32(latisv1.NodeState_NODE_STATE_DRAINING))
+	s.state.Store(int32(tndrlv1.NodeState_NODE_STATE_DRAINING))
 	slog.Debug("state transition", "state", "DRAINING")
 }
 
 // SetStopped transitions to STOPPED state.
 func (s *State) SetStopped() {
-	s.state.Store(int32(latisv1.NodeState_NODE_STATE_STOPPED))
+	s.state.Store(int32(tndrlv1.NodeState_NODE_STATE_STOPPED))
 	slog.Debug("state transition", "state", "STOPPED")
 }
 
@@ -54,8 +54,8 @@ func (s *State) SetStopped() {
 func (s *State) IncrementTasks() {
 	s.activeTasks.Add(1)
 	s.state.CompareAndSwap(
-		int32(latisv1.NodeState_NODE_STATE_READY),
-		int32(latisv1.NodeState_NODE_STATE_BUSY),
+		int32(tndrlv1.NodeState_NODE_STATE_READY),
+		int32(tndrlv1.NodeState_NODE_STATE_BUSY),
 	)
 }
 
@@ -63,15 +63,15 @@ func (s *State) IncrementTasks() {
 func (s *State) DecrementTasks() {
 	if s.activeTasks.Add(-1) == 0 {
 		s.state.CompareAndSwap(
-			int32(latisv1.NodeState_NODE_STATE_BUSY),
-			int32(latisv1.NodeState_NODE_STATE_READY),
+			int32(tndrlv1.NodeState_NODE_STATE_BUSY),
+			int32(tndrlv1.NodeState_NODE_STATE_READY),
 		)
 	}
 }
 
 // GetState returns the current node state enum.
-func (s *State) GetState() latisv1.NodeState {
-	return latisv1.NodeState(s.state.Load())
+func (s *State) GetState() tndrlv1.NodeState {
+	return tndrlv1.NodeState(s.state.Load())
 }
 
 // GetActiveTasks returns the current active task count.

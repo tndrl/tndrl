@@ -8,7 +8,7 @@ server:
   addr: "[::]:4433"
 
 agent:
-  name: latis-vertex-agent
+  name: tndrl-vertex-agent
   description: "Agent powered by Claude via Vertex AI"
   streaming: true
   skills:

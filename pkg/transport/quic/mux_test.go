@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shanemcd/latis/pkg/pki"
+	"github.com/shanemcd/tndrl/pkg/pki"
 )
 
 func setupTestTLS(t *testing.T) (serverConfig, clientConfig *tls.Config) {

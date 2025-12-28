@@ -7,9 +7,9 @@ func TestNodeIdentity(t *testing.T) {
 		id   string
 		want string
 	}{
-		{"abc123", "spiffe://latis/node/abc123"},
-		{"", "spiffe://latis/node/"},
-		{"my-node-id", "spiffe://latis/node/my-node-id"},
+		{"abc123", "spiffe://tndrl/node/abc123"},
+		{"", "spiffe://tndrl/node/"},
+		{"my-node-id", "spiffe://tndrl/node/my-node-id"},
 	}
 
 	for _, tt := range tests {

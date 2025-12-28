@@ -24,8 +24,8 @@ func TestGenerateCA(t *testing.T) {
 	if !ca.Cert.IsCA {
 		t.Error("Certificate is not marked as CA")
 	}
-	if ca.Cert.Subject.CommonName != "Latis CA" {
-		t.Errorf("CommonName = %q, want %q", ca.Cert.Subject.CommonName, "Latis CA")
+	if ca.Cert.Subject.CommonName != "Tndrl CA" {
+		t.Errorf("CommonName = %q, want %q", ca.Cert.Subject.CommonName, "Tndrl CA")
 	}
 	if ca.Cert.KeyUsage&x509.KeyUsageCertSign == 0 {
 		t.Error("CA missing KeyUsageCertSign")

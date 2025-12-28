@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"os"
 
-	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
+	tndrlv1 "github.com/shanemcd/tndrl/gen/go/tndrl/v1"
 )
 
 // ShutdownCmd requests a peer to shutdown.
@@ -31,8 +31,8 @@ func (c *ShutdownCmd) Run(cli *CLI) error {
 	return doShutdown(context.Background(), conn.ControlClient(), !c.Force, int64(c.Timeout), c.Reason)
 }
 
-func doShutdown(ctx context.Context, client latisv1.ControlServiceClient, graceful bool, timeout int64, reason string) error {
-	resp, err := client.Shutdown(ctx, &latisv1.ShutdownRequest{
+func doShutdown(ctx context.Context, client tndrlv1.ControlServiceClient, graceful bool, timeout int64, reason string) error {
+	resp, err := client.Shutdown(ctx, &tndrlv1.ShutdownRequest{
 		Graceful:       graceful,
 		TimeoutSeconds: timeout,
 		Reason:         reason,

@@ -1,6 +1,6 @@
 # CLI Reference
 
-Latis is a single binary with subcommands for both daemon and client operations.
+Tndrl is a single binary with subcommands for both daemon and client operations.
 
 ## Global Flags
 
@@ -20,7 +20,7 @@ These flags apply to all commands:
 Run as a daemon, listening for connections from other nodes.
 
 ```bash
-latis serve [flags]
+tndrl serve [flags]
 ```
 
 #### Flags
@@ -28,33 +28,33 @@ latis serve [flags]
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--server-addr` | `[::]:4433` | Listen address |
-| `--agent-name` | `latis-agent` | Agent name |
+| `--agent-name` | `tndrl-agent` | Agent name |
 | `--agent-description` | | Agent description |
 | `--agent-streaming` | `true` | Enable streaming responses |
 | `--llm-provider` | **required** | LLM provider (echo, ollama) |
 | `--llm-model` | | Model name (required for ollama) |
 | `--llm-url` | | Provider API URL |
-| `--pki-dir` | `~/.latis/pki` | PKI directory |
+| `--pki-dir` | `~/.tndrl/pki` | PKI directory |
 | `--pki-ca-cert` | `<pki-dir>/ca.crt` | CA certificate path |
 | `--pki-ca-key` | `<pki-dir>/ca.key` | CA private key path |
-| `--pki-cert` | `<pki-dir>/latis.crt` | Node certificate path |
-| `--pki-key` | `<pki-dir>/latis.key` | Node private key path |
+| `--pki-cert` | `<pki-dir>/tndrl.crt` | Node certificate path |
+| `--pki-key` | `<pki-dir>/tndrl.key` | Node private key path |
 | `--pki-init` | `false` | Initialize PKI if missing |
 
 #### Examples
 
 ```bash
 # For testing (echo provider)
-latis serve --pki-init --llm-provider=echo
+tndrl serve --pki-init --llm-provider=echo
 
 # With Ollama
-latis serve --pki-init --llm-provider=ollama --llm-model=llama3.2
+tndrl serve --pki-init --llm-provider=ollama --llm-model=llama3.2
 
 # With config file
-latis serve -c config.yaml
+tndrl serve -c config.yaml
 
 # Override config file options
-latis serve -c config.yaml --llm-model=mistral
+tndrl serve -c config.yaml --llm-model=mistral
 ```
 
 ### ping
@@ -62,7 +62,7 @@ latis serve -c config.yaml --llm-model=mistral
 Ping a peer node to check connectivity.
 
 ```bash
-latis ping <peer>
+tndrl ping <peer>
 ```
 
 #### Arguments
@@ -74,8 +74,8 @@ latis ping <peer>
 #### Examples
 
 ```bash
-latis ping localhost:4433
-latis ping backend  # uses name from config peers section
+tndrl ping localhost:4433
+tndrl ping backend  # uses name from config peers section
 ```
 
 ### status
@@ -83,7 +83,7 @@ latis ping backend  # uses name from config peers section
 Get status information from a peer node.
 
 ```bash
-latis status <peer>
+tndrl status <peer>
 ```
 
 #### Arguments
@@ -96,7 +96,7 @@ latis status <peer>
 
 ```
 Node Status:
-  Identity: spiffe://latis/node/abc123
+  Identity: spiffe://tndrl/node/abc123
   State: READY
   Uptime: 120s
 ```
@@ -104,8 +104,8 @@ Node Status:
 #### Examples
 
 ```bash
-latis status localhost:4433
-latis status backend
+tndrl status localhost:4433
+tndrl status backend
 ```
 
 ### prompt
@@ -113,7 +113,7 @@ latis status backend
 Send a prompt to a peer via the A2A protocol.
 
 ```bash
-latis prompt [flags] <peer> <message>
+tndrl prompt [flags] <peer> <message>
 ```
 
 #### Arguments
@@ -133,13 +133,13 @@ latis prompt [flags] <peer> <message>
 
 ```bash
 # Non-streaming
-latis prompt localhost:4433 "Hello, what can you do?"
+tndrl prompt localhost:4433 "Hello, what can you do?"
 
 # Streaming
-latis prompt -s localhost:4433 "Tell me a story"
+tndrl prompt -s localhost:4433 "Tell me a story"
 
 # Using peer name
-latis prompt backend "Review this code"
+tndrl prompt backend "Review this code"
 ```
 
 ### discover
@@ -147,7 +147,7 @@ latis prompt backend "Review this code"
 Fetch a peer's AgentCard to discover its capabilities.
 
 ```bash
-latis discover <peer>
+tndrl discover <peer>
 ```
 
 #### Arguments
@@ -174,8 +174,8 @@ Skills:
 #### Examples
 
 ```bash
-latis discover localhost:4433
-latis discover backend
+tndrl discover localhost:4433
+tndrl discover backend
 ```
 
 ### shutdown
@@ -183,7 +183,7 @@ latis discover backend
 Request a peer to shut down.
 
 ```bash
-latis shutdown [flags] <peer>
+tndrl shutdown [flags] <peer>
 ```
 
 #### Arguments
@@ -204,13 +204,13 @@ latis shutdown [flags] <peer>
 
 ```bash
 # Graceful shutdown
-latis shutdown localhost:4433
+tndrl shutdown localhost:4433
 
 # Force immediate shutdown
-latis shutdown --force localhost:4433
+tndrl shutdown --force localhost:4433
 
 # With custom timeout and reason
-latis shutdown --timeout=60 --reason="maintenance" backend
+tndrl shutdown --timeout=60 --reason="maintenance" backend
 ```
 
 ## PKI Configuration
@@ -223,17 +223,17 @@ When running a client command for the first time, initialize PKI:
 
 ```bash
 # Run any command with --pki-init
-latis ping localhost:4433 --pki-init
+tndrl ping localhost:4433 --pki-init
 ```
 
 Or use a config file with `pki.init: true`.
 
 ### Certificate Location
 
-By default, certificates are stored in `~/.latis/pki/`:
+By default, certificates are stored in `~/.tndrl/pki/`:
 
 ```
-~/.latis/pki/
+~/.tndrl/pki/
 ├── ca.crt          # CA certificate
 ├── node.crt        # Node certificate
 └── node.key        # Node private key
@@ -252,15 +252,15 @@ By default, certificates are stored in `~/.latis/pki/`:
 
 ```bash
 # Terminal 1: Start a node
-latis serve --pki-init --llm-provider=ollama --llm-model=llama3.2
+tndrl serve --pki-init --llm-provider=ollama --llm-model=llama3.2
 
 # Terminal 2: Interact with the node
-latis ping localhost:4433
-latis status localhost:4433
-latis discover localhost:4433
-latis prompt localhost:4433 "Hello!"
-latis prompt -s localhost:4433 "Tell me about yourself"
-latis shutdown localhost:4433
+tndrl ping localhost:4433
+tndrl status localhost:4433
+tndrl discover localhost:4433
+tndrl prompt localhost:4433 "Hello!"
+tndrl prompt -s localhost:4433 "Tell me about yourself"
+tndrl shutdown localhost:4433
 ```
 
 ### Using Config Files
@@ -285,8 +285,8 @@ peers:
 EOF
 
 # Use config file
-latis serve -c config.yaml
+tndrl serve -c config.yaml
 
 # Client commands can also use config (for PKI and peers)
-latis ping main -c config.yaml
+tndrl ping main -c config.yaml
 ```

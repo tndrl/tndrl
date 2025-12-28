@@ -4,7 +4,7 @@ llm:
   provider: echo
 
 pki:
-  dir: ~/.latis/pki
+  dir: ~/.tndrl/pki
   init: true
 
 peers:

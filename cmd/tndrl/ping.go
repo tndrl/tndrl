@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
+	tndrlv1 "github.com/shanemcd/tndrl/gen/go/tndrl/v1"
 )
 
 // PingCmd sends a ping to a peer.
@@ -28,9 +28,9 @@ func (c *PingCmd) Run(cli *CLI) error {
 	return doPing(context.Background(), conn.ControlClient())
 }
 
-func doPing(ctx context.Context, client latisv1.ControlServiceClient) error {
+func doPing(ctx context.Context, client tndrlv1.ControlServiceClient) error {
 	pingTime := time.Now()
-	resp, err := client.Ping(ctx, &latisv1.PingRequest{
+	resp, err := client.Ping(ctx, &tndrlv1.PingRequest{
 		Timestamp: pingTime.UnixNano(),
 	})
 	if err != nil {

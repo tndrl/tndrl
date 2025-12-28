@@ -12,9 +12,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
-	"github.com/shanemcd/latis/pkg/pki"
-	quictransport "github.com/shanemcd/latis/pkg/transport/quic"
+	tndrlv1 "github.com/shanemcd/tndrl/gen/go/tndrl/v1"
+	"github.com/shanemcd/tndrl/pkg/pki"
+	quictransport "github.com/shanemcd/tndrl/pkg/transport/quic"
 )
 
 // PeerConnection holds connections to a peer.
@@ -53,8 +53,8 @@ func ConnectToPeer(cli *CLI, peerAddr string) (*PeerConnection, error) {
 }
 
 // ControlClient returns a Control service client.
-func (pc *PeerConnection) ControlClient() latisv1.ControlServiceClient {
-	return latisv1.NewControlServiceClient(pc.controlConn)
+func (pc *PeerConnection) ControlClient() tndrlv1.ControlServiceClient {
+	return tndrlv1.NewControlServiceClient(pc.controlConn)
 }
 
 // A2ATransport returns an A2A transport for sending messages.
@@ -97,7 +97,7 @@ func setupClientTLS(cli *CLI, peerAddr string) (*tls.Config, error) {
 	// Load CA
 	ca, err := pki.LoadCA(cli.PKI.CACert, cli.PKI.CAKey)
 	if err != nil {
-		return nil, fmt.Errorf("load CA (run 'latis serve --pki-init' first): %w", err)
+		return nil, fmt.Errorf("load CA (run 'tndrl serve --pki-init' first): %w", err)
 	}
 
 	// Load certificate
@@ -118,7 +118,7 @@ func setupClientTLS(cli *CLI, peerAddr string) (*tls.Config, error) {
 func initializeClientPKI(cli *CLI) error {
 	// Check if CA exists (we need CA to sign client cert)
 	if !pki.CertExists(cli.PKI.CACert, cli.PKI.CAKey) {
-		return fmt.Errorf("CA not found at %s - run 'latis serve --pki-init' first to create CA", cli.PKI.CACert)
+		return fmt.Errorf("CA not found at %s - run 'tndrl serve --pki-init' first to create CA", cli.PKI.CACert)
 	}
 
 	// Check if cert already exists

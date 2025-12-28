@@ -1,4 +1,4 @@
-// latis/v1/control.proto
+// tndrl/v1/control.proto
 //
 // Control plane protocol for node lifecycle and health management.
 //
@@ -11,9 +11,9 @@
 
 syntax = "proto3";
 
-package latis.v1;
+package tndrl.v1;
 
-option go_package = "github.com/shanemcd/latis/gen/go/latis/v1;latisv1";
+option go_package = "github.com/shanemcd/tndrl/gen/go/tndrl/v1;tndrlv1";
 
 // ControlService handles control plane operations for nodes.
 // This is separate from agent communication (A2A) and runs on its own stream.

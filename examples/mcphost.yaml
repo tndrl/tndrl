@@ -7,7 +7,7 @@ server:
   addr: "[::]:4433"
 
 agent:
-  name: latis-mcp-agent
+  name: tndrl-mcp-agent
   description: "Agent with MCP tool support"
   streaming: true
   skills:

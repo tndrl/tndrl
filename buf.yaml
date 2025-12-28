@@ -1,4 +1,4 @@
-# buf.yaml - Buf configuration for latis protocol definitions
+# buf.yaml - Buf configuration for tndrl protocol definitions
 #
 # Design Decision: buf over protoc
 #

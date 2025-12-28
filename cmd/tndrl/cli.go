@@ -11,19 +11,19 @@ import (
 	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
 
-	"github.com/shanemcd/latis/pkg/llm"
-	"github.com/shanemcd/latis/pkg/pki"
+	"github.com/shanemcd/tndrl/pkg/llm"
+	"github.com/shanemcd/tndrl/pkg/pki"
 )
 
 // ConfigVersion is the current config file version.
 const ConfigVersion = "v1"
 
-// CLI is the root command structure for latis.
+// CLI is the root command structure for tndrl.
 // It serves as the single source of truth for CLI flags, env vars, and config files.
 type CLI struct {
 	// Global flags (shared across all subcommands)
 	Config   string `short:"c" help:"Path to config file" type:"path" yaml:"-"`
-	LogLevel string `help:"Log level (debug, info, warn, error)" default:"info" env:"LATIS_LOG_LEVEL" yaml:"logLevel"`
+	LogLevel string `help:"Log level (debug, info, warn, error)" default:"info" env:"TNDRL_LOG_LEVEL" yaml:"logLevel"`
 	Verbose  bool   `short:"v" help:"Verbose output (same as --log-level=debug)" yaml:"-"`
 
 	// Embedded config (populated from file + CLI + env)
@@ -45,16 +45,16 @@ type CLI struct {
 
 // ServerConfig holds server-mode configuration.
 type ServerConfig struct {
-	Addr string `help:"Address to listen on" env:"LATIS_ADDR" yaml:"addr"`
+	Addr string `help:"Address to listen on" env:"TNDRL_ADDR" yaml:"addr"`
 }
 
 // AgentConfig holds A2A agent card configuration.
 type AgentConfig struct {
-	Name        string   `help:"Agent name" env:"LATIS_AGENT_NAME" yaml:"name"`
-	Description string   `help:"Agent description" env:"LATIS_AGENT_DESCRIPTION" yaml:"description"`
-	InputModes  []string `help:"Supported input modes" env:"LATIS_AGENT_INPUT_MODES" yaml:"inputModes"`
-	OutputModes []string `help:"Supported output modes" env:"LATIS_AGENT_OUTPUT_MODES" yaml:"outputModes"`
-	Streaming   *bool    `help:"Enable streaming" env:"LATIS_AGENT_STREAMING" yaml:"streaming"`
+	Name        string   `help:"Agent name" env:"TNDRL_AGENT_NAME" yaml:"name"`
+	Description string   `help:"Agent description" env:"TNDRL_AGENT_DESCRIPTION" yaml:"description"`
+	InputModes  []string `help:"Supported input modes" env:"TNDRL_AGENT_INPUT_MODES" yaml:"inputModes"`
+	OutputModes []string `help:"Supported output modes" env:"TNDRL_AGENT_OUTPUT_MODES" yaml:"outputModes"`
+	Streaming   *bool    `help:"Enable streaming" env:"TNDRL_AGENT_STREAMING" yaml:"streaming"`
 	Skills      []Skill  `yaml:"skills" kong:"-"`
 }
 
@@ -69,23 +69,23 @@ type Skill struct {
 
 // LLMConfig holds LLM provider configuration.
 type LLMConfig struct {
-	Provider      string                         `help:"LLM provider (echo, ollama, mcphost)" env:"LATIS_LLM_PROVIDER" yaml:"provider"`
-	Model         string                         `help:"LLM model name" env:"LATIS_LLM_MODEL" yaml:"model"`
-	URL           string                         `help:"LLM API URL" env:"LATIS_LLM_URL" yaml:"url"`
-	SystemPrompt  string                         `help:"System prompt for the LLM" env:"LATIS_LLM_SYSTEM_PROMPT" yaml:"systemPrompt"`
-	MaxSteps      int                            `help:"Maximum tool call steps (0=unlimited)" env:"LATIS_LLM_MAX_STEPS" yaml:"maxSteps"`
-	MCPConfigFile string                         `help:"Path to mcphost config file" env:"LATIS_MCP_CONFIG" yaml:"mcpConfigFile"`
+	Provider      string                         `help:"LLM provider (echo, ollama, mcphost)" env:"TNDRL_LLM_PROVIDER" yaml:"provider"`
+	Model         string                         `help:"LLM model name" env:"TNDRL_LLM_MODEL" yaml:"model"`
+	URL           string                         `help:"LLM API URL" env:"TNDRL_LLM_URL" yaml:"url"`
+	SystemPrompt  string                         `help:"System prompt for the LLM" env:"TNDRL_LLM_SYSTEM_PROMPT" yaml:"systemPrompt"`
+	MaxSteps      int                            `help:"Maximum tool call steps (0=unlimited)" env:"TNDRL_LLM_MAX_STEPS" yaml:"maxSteps"`
+	MCPConfigFile string                         `help:"Path to mcphost config file" env:"TNDRL_MCP_CONFIG" yaml:"mcpConfigFile"`
 	MCPServers    map[string]llm.MCPServerConfig `yaml:"mcpServers" kong:"-"`
 }
 
 // PKIConfig holds PKI-related configuration.
 type PKIConfig struct {
-	Dir    string `help:"PKI directory" env:"LATIS_PKI_DIR" yaml:"dir"`
-	CACert string `help:"CA certificate path (overrides pki-dir)" env:"LATIS_CA_CERT" yaml:"caCert"`
-	CAKey  string `help:"CA private key path" env:"LATIS_CA_KEY" yaml:"caKey"`
-	Cert   string `help:"Certificate path" env:"LATIS_CERT" yaml:"cert"`
-	Key    string `help:"Private key path" env:"LATIS_KEY" yaml:"key"`
-	Init   bool   `help:"Initialize PKI if missing" env:"LATIS_INIT_PKI" yaml:"init"`
+	Dir    string `help:"PKI directory" env:"TNDRL_PKI_DIR" yaml:"dir"`
+	CACert string `help:"CA certificate path (overrides pki-dir)" env:"TNDRL_CA_CERT" yaml:"caCert"`
+	CAKey  string `help:"CA private key path" env:"TNDRL_CA_KEY" yaml:"caKey"`
+	Cert   string `help:"Certificate path" env:"TNDRL_CERT" yaml:"cert"`
+	Key    string `help:"Private key path" env:"TNDRL_KEY" yaml:"key"`
+	Init   bool   `help:"Initialize PKI if missing" env:"TNDRL_INIT_PKI" yaml:"init"`
 }
 
 // PeerConfig holds configuration for a known peer.
@@ -119,7 +119,7 @@ func (cli *CLI) ApplyDefaults() {
 		cli.Server.Addr = "[::]:4433"
 	}
 	if cli.PKI.Dir == "" {
-		cli.PKI.Dir = "~/.latis/pki"
+		cli.PKI.Dir = "~/.tndrl/pki"
 	}
 	if len(cli.Agent.InputModes) == 0 {
 		cli.Agent.InputModes = []string{"text"}
@@ -218,10 +218,10 @@ func (cli *CLI) ResolvePaths() error {
 		cli.PKI.CAKey = filepath.Join(cli.PKI.Dir, "ca.key")
 	}
 	if cli.PKI.Cert == "" {
-		cli.PKI.Cert = filepath.Join(cli.PKI.Dir, "latis.crt")
+		cli.PKI.Cert = filepath.Join(cli.PKI.Dir, "tndrl.crt")
 	}
 	if cli.PKI.Key == "" {
-		cli.PKI.Key = filepath.Join(cli.PKI.Dir, "latis.key")
+		cli.PKI.Key = filepath.Join(cli.PKI.Dir, "tndrl.key")
 	}
 
 	return nil
@@ -286,12 +286,12 @@ func (cli *CLI) CreateLLMProvider(ctx context.Context) (llm.Provider, error) {
 func (cli *CLI) AgentCard(addr string) *a2a.AgentCard {
 	name := cli.Agent.Name
 	if name == "" {
-		name = "latis"
+		name = "tndrl"
 	}
 
 	description := cli.Agent.Description
 	if description == "" {
-		description = fmt.Sprintf("Latis Agent (LLM: %s)", cli.LLM.Provider)
+		description = fmt.Sprintf("Tndrl Agent (LLM: %s)", cli.LLM.Provider)
 	}
 
 	inputModes := cli.Agent.InputModes

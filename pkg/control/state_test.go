@@ -4,17 +4,17 @@ import (
 	"sync"
 	"testing"
 
-	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
+	tndrlv1 "github.com/shanemcd/tndrl/gen/go/tndrl/v1"
 )
 
 func TestNewState(t *testing.T) {
-	s := NewState("spiffe://latis/node/test")
+	s := NewState("spiffe://tndrl/node/test")
 
-	if s.GetState() != latisv1.NodeState_NODE_STATE_STARTING {
+	if s.GetState() != tndrlv1.NodeState_NODE_STATE_STARTING {
 		t.Errorf("expected STARTING state, got %v", s.GetState())
 	}
-	if s.GetIdentity() != "spiffe://latis/node/test" {
-		t.Errorf("expected identity 'spiffe://latis/node/test', got %v", s.GetIdentity())
+	if s.GetIdentity() != "spiffe://tndrl/node/test" {
+		t.Errorf("expected identity 'spiffe://tndrl/node/test', got %v", s.GetIdentity())
 	}
 	if s.GetActiveTasks() != 0 {
 		t.Errorf("expected 0 active tasks, got %v", s.GetActiveTasks())
@@ -26,19 +26,19 @@ func TestStateTransitions(t *testing.T) {
 
 	// STARTING -> READY
 	s.SetReady()
-	if s.GetState() != latisv1.NodeState_NODE_STATE_READY {
+	if s.GetState() != tndrlv1.NodeState_NODE_STATE_READY {
 		t.Errorf("expected READY state, got %v", s.GetState())
 	}
 
 	// READY -> DRAINING
 	s.SetDraining()
-	if s.GetState() != latisv1.NodeState_NODE_STATE_DRAINING {
+	if s.GetState() != tndrlv1.NodeState_NODE_STATE_DRAINING {
 		t.Errorf("expected DRAINING state, got %v", s.GetState())
 	}
 
 	// DRAINING -> STOPPED
 	s.SetStopped()
-	if s.GetState() != latisv1.NodeState_NODE_STATE_STOPPED {
+	if s.GetState() != tndrlv1.NodeState_NODE_STATE_STOPPED {
 		t.Errorf("expected STOPPED state, got %v", s.GetState())
 	}
 }
@@ -52,7 +52,7 @@ func TestTaskTracking(t *testing.T) {
 	if s.GetActiveTasks() != 1 {
 		t.Errorf("expected 1 active task, got %v", s.GetActiveTasks())
 	}
-	if s.GetState() != latisv1.NodeState_NODE_STATE_BUSY {
+	if s.GetState() != tndrlv1.NodeState_NODE_STATE_BUSY {
 		t.Errorf("expected BUSY state, got %v", s.GetState())
 	}
 
@@ -67,7 +67,7 @@ func TestTaskTracking(t *testing.T) {
 	if s.GetActiveTasks() != 1 {
 		t.Errorf("expected 1 active task, got %v", s.GetActiveTasks())
 	}
-	if s.GetState() != latisv1.NodeState_NODE_STATE_BUSY {
+	if s.GetState() != tndrlv1.NodeState_NODE_STATE_BUSY {
 		t.Errorf("expected BUSY state, got %v", s.GetState())
 	}
 
@@ -76,7 +76,7 @@ func TestTaskTracking(t *testing.T) {
 	if s.GetActiveTasks() != 0 {
 		t.Errorf("expected 0 active tasks, got %v", s.GetActiveTasks())
 	}
-	if s.GetState() != latisv1.NodeState_NODE_STATE_READY {
+	if s.GetState() != tndrlv1.NodeState_NODE_STATE_READY {
 		t.Errorf("expected READY state, got %v", s.GetState())
 	}
 }
@@ -115,7 +115,7 @@ func TestTaskTrackingConcurrent(t *testing.T) {
 	if s.GetActiveTasks() != 0 {
 		t.Errorf("expected 0 active tasks, got %v", s.GetActiveTasks())
 	}
-	if s.GetState() != latisv1.NodeState_NODE_STATE_READY {
+	if s.GetState() != tndrlv1.NodeState_NODE_STATE_READY {
 		t.Errorf("expected READY state after all tasks complete, got %v", s.GetState())
 	}
 }

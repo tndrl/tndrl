@@ -13,7 +13,7 @@ func TestServerTLSConfig(t *testing.T) {
 		t.Fatalf("GenerateCA() error = %v", err)
 	}
 
-	serverCert, err := GenerateCert(ca, "spiffe://latis/node/test", true, false)
+	serverCert, err := GenerateCert(ca, "spiffe://tndrl/node/test", true, false)
 	if err != nil {
 		t.Fatalf("GenerateCert() error = %v", err)
 	}
@@ -43,7 +43,7 @@ func TestClientTLSConfig(t *testing.T) {
 		t.Fatalf("GenerateCA() error = %v", err)
 	}
 
-	clientCert, err := GenerateCert(ca, "spiffe://latis/node/client", false, true)
+	clientCert, err := GenerateCert(ca, "spiffe://tndrl/node/client", false, true)
 	if err != nil {
 		t.Fatalf("GenerateCert() error = %v", err)
 	}
@@ -74,12 +74,12 @@ func TestMTLSHandshake(t *testing.T) {
 		t.Fatalf("GenerateCA() error = %v", err)
 	}
 
-	serverCert, err := GenerateCert(ca, "spiffe://latis/node/test", true, false)
+	serverCert, err := GenerateCert(ca, "spiffe://tndrl/node/test", true, false)
 	if err != nil {
 		t.Fatalf("GenerateCert() for server error = %v", err)
 	}
 
-	clientCert, err := GenerateCert(ca, "spiffe://latis/node/client", false, true)
+	clientCert, err := GenerateCert(ca, "spiffe://tndrl/node/client", false, true)
 	if err != nil {
 		t.Fatalf("GenerateCert() for client error = %v", err)
 	}
@@ -201,13 +201,13 @@ func TestMTLSHandshake_WrongCA(t *testing.T) {
 	}
 
 	// Server uses serverCA
-	serverCert, err := GenerateCert(serverCA, "spiffe://latis/unit/test", true, false)
+	serverCert, err := GenerateCert(serverCA, "spiffe://tndrl/unit/test", true, false)
 	if err != nil {
 		t.Fatalf("GenerateCert() for server error = %v", err)
 	}
 
 	// Client uses clientCA (different!)
-	clientCert, err := GenerateCert(clientCA, "spiffe://latis/node/client", false, true)
+	clientCert, err := GenerateCert(clientCA, "spiffe://tndrl/node/client", false, true)
 	if err != nil {
 		t.Fatalf("GenerateCert() for client error = %v", err)
 	}

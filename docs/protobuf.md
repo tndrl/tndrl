@@ -1,14 +1,14 @@
 # Protobuf & buf
 
-Latis uses [Protocol Buffers](https://protobuf.dev/) for control plane message definitions and [buf](https://buf.build/) for tooling.
+Tndrl uses [Protocol Buffers](https://protobuf.dev/) for control plane message definitions and [buf](https://buf.build/) for tooling.
 
 ## Protocol Overview
 
-Latis has two distinct communication protocols:
+Tndrl has two distinct communication protocols:
 
 | Protocol | Purpose | Implementation |
 |----------|---------|----------------|
-| **Control** | Node lifecycle (ping, status, shutdown) | Custom protobuf in `proto/latis/v1/control.proto` |
+| **Control** | Node lifecycle (ping, status, shutdown) | Custom protobuf in `proto/tndrl/v1/control.proto` |
 | **A2A** | Agent communication (prompts, tasks) | [a2a-go](https://github.com/a2aproject/a2a-go) library |
 
 The Control protocol is defined in this repository. A2A protocol definitions come from the upstream `a2a-go` library.
@@ -16,13 +16,13 @@ The Control protocol is defined in this repository. A2A protocol definitions com
 ## Directory Structure
 
 ```
-latis/
+tndrl/
 ├── proto/
-│   └── latis/v1/
+│   └── tndrl/v1/
 │       └── control.proto     # Control plane service definition
 ├── gen/
 │   └── go/
-│       └── latis/v1/         # Generated Go code (committed)
+│       └── tndrl/v1/         # Generated Go code (committed)
 │           ├── control.pb.go
 │           └── control_grpc.pb.go
 ├── buf.yaml                  # Module configuration
@@ -45,19 +45,19 @@ service ControlService {
 
 ### Usage in Go
 
-**Server side (in `latis serve`):**
+**Server side (in `tndrl serve`):**
 
 ```go
 import (
     "google.golang.org/grpc"
-    latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
-    "github.com/shanemcd/latis/pkg/control"
+    tndrlv1 "github.com/shanemcd/tndrl/gen/go/tndrl/v1"
+    "github.com/shanemcd/tndrl/pkg/control"
 )
 
 // Create and register the control service
 grpcServer := grpc.NewServer()
 controlService := control.NewService(state)
-latisv1.RegisterControlServiceServer(grpcServer, controlService)
+tndrlv1.RegisterControlServiceServer(grpcServer, controlService)
 ```
 
 **Client side (ping, status, shutdown commands):**
@@ -65,25 +65,25 @@ latisv1.RegisterControlServiceServer(grpcServer, controlService)
 ```go
 import (
     "google.golang.org/grpc"
-    latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
+    tndrlv1 "github.com/shanemcd/tndrl/gen/go/tndrl/v1"
 )
 
 // Create client from gRPC connection
 conn, _ := grpc.NewClient(addr, opts...)
-client := latisv1.NewControlServiceClient(conn)
+client := tndrlv1.NewControlServiceClient(conn)
 
 // Ping
-resp, _ := client.Ping(ctx, &latisv1.PingRequest{
+resp, _ := client.Ping(ctx, &tndrlv1.PingRequest{
     Timestamp: time.Now().UnixNano(),
 })
 latency := time.Duration(resp.PongTimestamp - resp.PingTimestamp)
 
 // Get status
-status, _ := client.GetStatus(ctx, &latisv1.GetStatusRequest{})
+status, _ := client.GetStatus(ctx, &tndrlv1.GetStatusRequest{})
 fmt.Printf("State: %s, Uptime: %ds\n", status.State, status.UptimeSeconds)
 
 // Shutdown
-_, _ = client.Shutdown(ctx, &latisv1.ShutdownRequest{
+_, _ = client.Shutdown(ctx, &tndrlv1.ShutdownRequest{
     Graceful:       true,
     TimeoutSeconds: 30,
     Reason:         "requested by peer",
@@ -145,13 +145,13 @@ Running `buf generate` produces:
 
 | File | Contents |
 |------|----------|
-| `gen/go/latis/v1/control.pb.go` | Protobuf message types |
-| `gen/go/latis/v1/control_grpc.pb.go` | gRPC client/server interfaces |
+| `gen/go/tndrl/v1/control.pb.go` | Protobuf message types |
+| `gen/go/tndrl/v1/control_grpc.pb.go` | gRPC client/server interfaces |
 
 Import in Go:
 
 ```go
-import latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
+import tndrlv1 "github.com/shanemcd/tndrl/gen/go/tndrl/v1"
 ```
 
 ## Configuration
@@ -178,7 +178,7 @@ managed:
   enabled: true
   override:
     - file_option: go_package_prefix
-      value: github.com/shanemcd/latis/gen/go
+      value: github.com/shanemcd/tndrl/gen/go
 plugins:
   - remote: buf.build/protocolbuffers/go   # Protobuf messages
     out: gen/go
@@ -192,7 +192,7 @@ plugins:
 
 ### Adding a New RPC
 
-1. Add the RPC to `proto/latis/v1/control.proto`
+1. Add the RPC to `proto/tndrl/v1/control.proto`
 2. Define request/response messages
 3. Run `buf lint` and `buf generate`
 4. Implement in `pkg/control/control.go`

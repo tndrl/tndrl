@@ -1,10 +1,10 @@
 # Protocol
 
-How Latis nodes communicate over the network.
+How Tndrl nodes communicate over the network.
 
 ## Protocol Stack
 
-Latis uses a layered protocol stack:
+Tndrl uses a layered protocol stack:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -54,7 +54,7 @@ Client                                    Server
 
 ## Control Protocol
 
-Runs on stream type `0x01`. Defined in `proto/latis/v1/control.proto`.
+Runs on stream type `0x01`. Defined in `proto/tndrl/v1/control.proto`.
 
 | RPC | Purpose |
 |-----|---------|
@@ -129,4 +129,4 @@ See [pkg/pki/README.md](../../pkg/pki/README.md) for certificate management.
 
 - **Isolation** — control operations don't interfere with agent traffic
 - **Different concerns** — control is infrastructure, A2A is application
-- **Independent evolution** — A2A follows upstream spec, control is Latis-specific
+- **Independent evolution** — A2A follows upstream spec, control is Tndrl-specific

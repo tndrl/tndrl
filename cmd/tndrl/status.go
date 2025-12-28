@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
+	tndrlv1 "github.com/shanemcd/tndrl/gen/go/tndrl/v1"
 )
 
 // StatusCmd gets status from a peer.
@@ -27,8 +27,8 @@ func (c *StatusCmd) Run(cli *CLI) error {
 	return doGetStatus(context.Background(), conn.ControlClient())
 }
 
-func doGetStatus(ctx context.Context, client latisv1.ControlServiceClient) error {
-	resp, err := client.GetStatus(ctx, &latisv1.GetStatusRequest{})
+func doGetStatus(ctx context.Context, client tndrlv1.ControlServiceClient) error {
+	resp, err := client.GetStatus(ctx, &tndrlv1.GetStatusRequest{})
 	if err != nil {
 		return fmt.Errorf("get status failed: %w", err)
 	}

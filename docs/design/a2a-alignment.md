@@ -2,13 +2,13 @@
 
 ## Decision
 
-Latis aligns with the [Agent2Agent (A2A) protocol](https://a2a-protocol.org/) for agent communication. A2A provides the agent communication semantics; Latis provides the control plane, transport, and infrastructure layer.
+Tndrl aligns with the [Agent2Agent (A2A) protocol](https://a2a-protocol.org/) for agent communication. A2A provides the agent communication semantics; Tndrl provides the control plane, transport, and infrastructure layer.
 
 ## Rationale
 
 - **Industry adoption**: A2A is backed by Google, Microsoft, Linux Foundation, 50+ companies
-- **Interoperability**: Latis nodes become compatible with the broader agent ecosystem
-- **Focus**: Latis focuses on its unique value (orchestration, mTLS, QUIC transport) rather than protocol semantics
+- **Interoperability**: Tndrl nodes become compatible with the broader agent ecosystem
+- **Focus**: Tndrl focuses on its unique value (orchestration, mTLS, QUIC transport) rather than protocol semantics
 - **Complementary to MCP**: A2A handles agent-to-agent; MCP handles agent-to-tool
 
 ## Architecture
@@ -20,7 +20,7 @@ Latis aligns with the [Agent2Agent (A2A) protocol](https://a2a-protocol.org/) fo
                                          │ A2A Protocol
                                          ▼
 ┌────────────────────────────────────────────────────────────────┐
-│                           latis                                 │
+│                           tndrl                                 │
 │                                                                 │
 │   ┌─────────────┐    ┌─────────────┐    ┌─────────────────┐    │
 │   │  A2A Agent  │◄──►│   Control   │◄──►│  Human Interface│    │
@@ -33,7 +33,7 @@ Latis aligns with the [Agent2Agent (A2A) protocol](https://a2a-protocol.org/) fo
               ┌───────────────┴───────────────┐
               │               │               │
          ┌────┴────┐    ┌─────┴────┐    ┌────┴────┐
-         │  latis  │    │  latis   │    │ latis   │
+         │  tndrl  │    │  tndrl   │    │ tndrl   │
          │  node   │    │  node    │    │ node    │
          └─────────┘    └──────────┘    └─────────┘
 ```
@@ -46,9 +46,9 @@ Latis aligns with the [Agent2Agent (A2A) protocol](https://a2a-protocol.org/) fo
 - **Artifacts**: Structured outputs from agent work
 - **Streaming**: Real-time status and artifact updates via events
 
-## What Latis Adds
+## What Tndrl Adds
 
-| Layer | Latis Contribution |
+| Layer | Tndrl Contribution |
 |-------|-------------------|
 | **Transport** | QUIC for performance, connection migration |
 | **Security** | mTLS with built-in CA, SPIFFE-compatible identities |

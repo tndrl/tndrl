@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	// TrustDomain is the SPIFFE trust domain for Latis.
-	TrustDomain = "latis"
+	// TrustDomain is the SPIFFE trust domain for Tndrl.
+	TrustDomain = "tndrl"
 )
 
 // NodeIdentity returns the SPIFFE identity URI for a node with the given ID.
