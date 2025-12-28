@@ -1,6 +1,6 @@
 # Policy
 
-Authorization and policy evaluation for latis.
+Authorization and policy evaluation for tndrl.
 
 ## Why Policy?
 
@@ -36,7 +36,7 @@ Policy governs:
 ## Example Policy (future)
 
 ```rego
-package latis
+package tndrl
 
 default allow = false
 
@@ -78,7 +78,7 @@ func (e *Evaluator) Allowed(ctx context.Context, input PolicyInput) (bool, error
 
 ## Policy Questions to Answer
 
-As latis develops, policy should answer:
+As tndrl develops, policy should answer:
 
 1. **Connection**: Can user X connect to node Y?
 2. **Actions**: Can this session send prompts? Subscribe to state?

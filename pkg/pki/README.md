@@ -1,13 +1,13 @@
 # PKI Package
 
-Certificate authority and mTLS certificate management for Latis.
+Certificate authority and mTLS certificate management for Tndrl.
 
 ## Overview
 
 This package provides:
 - **CA management** — Generate or load a certificate authority
 - **Certificate generation** — Create certificates signed by the CA
-- **SPIFFE-compatible identities** — URIs like `spiffe://latis/node/abc123`
+- **SPIFFE-compatible identities** — URIs like `spiffe://tndrl/node/abc123`
 - **TLS config builders** — Ready-to-use mTLS configurations
 
 ## Usage
@@ -16,43 +16,43 @@ This package provides:
 
 ```bash
 # Start a node with PKI initialization
-latis serve -c config.yaml --pki-init
+tndrl serve -c config.yaml --pki-init
 
 # Or use a config file with pki.init: true
 ```
 
-This creates `~/.latis/pki/` with:
+This creates `~/.tndrl/pki/` with:
 ```
 ca.crt      # CA certificate
 ca.key      # CA private key (only on first node)
-latis.crt   # Node certificate
-latis.key   # Node private key
+tndrl.crt   # Node certificate
+tndrl.key   # Node private key
 ```
 
 ### Multi-Machine Deployment
 
 ```bash
 # On machine A: Generate CA and node cert
-latis serve -c config.yaml --pki-init
+tndrl serve -c config.yaml --pki-init
 
 # Copy CA to machine B (but NOT ca.key unless needed)
-scp ~/.latis/pki/ca.crt remote:~/.latis/pki/
-scp ~/.latis/pki/ca.key remote:~/.latis/pki/   # Optional: only if B needs to issue certs
+scp ~/.tndrl/pki/ca.crt remote:~/.tndrl/pki/
+scp ~/.tndrl/pki/ca.key remote:~/.tndrl/pki/   # Optional: only if B needs to issue certs
 
 # On machine B: Generate node cert using existing CA
-latis serve -c config.yaml --pki-init
+tndrl serve -c config.yaml --pki-init
 ```
 
 ### Bring Your Own CA
 
 ```bash
-latis serve --pki-ca-cert /path/to/ca.crt --pki-ca-key /path/to/ca.key --pki-init
+tndrl serve --pki-ca-cert /path/to/ca.crt --pki-ca-key /path/to/ca.key --pki-init
 ```
 
 Or in config:
 ```yaml
 pki:
-  dir: ~/.latis/pki
+  dir: ~/.tndrl/pki
   caCert: /path/to/ca.crt
   caKey: /path/to/ca.key
   init: true
@@ -64,7 +64,7 @@ Certificates include SPIFFE-compatible URIs in the Subject Alternative Name:
 
 | Usage | Identity URI |
 |-------|--------------|
-| Node | `spiffe://latis/node/<name>` |
+| Node | `spiffe://tndrl/node/<name>` |
 
 This enables future integration with SPIFFE/SPIRE for automatic certificate management.
 
@@ -90,7 +90,7 @@ exists := pki.CAExists("/path/to/pki")
 
 ```go
 // Generate certificate signed by CA
-identity := pki.NodeIdentity("my-agent") // spiffe://latis/node/my-agent
+identity := pki.NodeIdentity("my-agent") // spiffe://tndrl/node/my-agent
 cert, err := pki.GenerateCert(ca, identity, isServer, isClient)
 
 // Load existing certificate

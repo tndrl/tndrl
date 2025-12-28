@@ -1,4 +1,4 @@
-// latis/v1/control.proto
+// tndrl/v1/control.proto
 //
 // Control plane protocol for node lifecycle and health management.
 //
@@ -13,9 +13,9 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: latis/v1/control.proto
+// source: tndrl/v1/control.proto
 
-package latisv1
+package tndrlv1
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -74,11 +74,11 @@ func (x NodeState) String() string {
 }
 
 func (NodeState) Descriptor() protoreflect.EnumDescriptor {
-	return file_latis_v1_control_proto_enumTypes[0].Descriptor()
+	return file_tndrl_v1_control_proto_enumTypes[0].Descriptor()
 }
 
 func (NodeState) Type() protoreflect.EnumType {
-	return &file_latis_v1_control_proto_enumTypes[0]
+	return &file_tndrl_v1_control_proto_enumTypes[0]
 }
 
 func (x NodeState) Number() protoreflect.EnumNumber {
@@ -87,7 +87,7 @@ func (x NodeState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use NodeState.Descriptor instead.
 func (NodeState) EnumDescriptor() ([]byte, []int) {
-	return file_latis_v1_control_proto_rawDescGZIP(), []int{0}
+	return file_tndrl_v1_control_proto_rawDescGZIP(), []int{0}
 }
 
 type PingRequest struct {
@@ -100,7 +100,7 @@ type PingRequest struct {
 
 func (x *PingRequest) Reset() {
 	*x = PingRequest{}
-	mi := &file_latis_v1_control_proto_msgTypes[0]
+	mi := &file_tndrl_v1_control_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -112,7 +112,7 @@ func (x *PingRequest) String() string {
 func (*PingRequest) ProtoMessage() {}
 
 func (x *PingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_latis_v1_control_proto_msgTypes[0]
+	mi := &file_tndrl_v1_control_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -125,7 +125,7 @@ func (x *PingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PingRequest.ProtoReflect.Descriptor instead.
 func (*PingRequest) Descriptor() ([]byte, []int) {
-	return file_latis_v1_control_proto_rawDescGZIP(), []int{0}
+	return file_tndrl_v1_control_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *PingRequest) GetTimestamp() int64 {
@@ -147,7 +147,7 @@ type PingResponse struct {
 
 func (x *PingResponse) Reset() {
 	*x = PingResponse{}
-	mi := &file_latis_v1_control_proto_msgTypes[1]
+	mi := &file_tndrl_v1_control_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -159,7 +159,7 @@ func (x *PingResponse) String() string {
 func (*PingResponse) ProtoMessage() {}
 
 func (x *PingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_latis_v1_control_proto_msgTypes[1]
+	mi := &file_tndrl_v1_control_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -172,7 +172,7 @@ func (x *PingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PingResponse.ProtoReflect.Descriptor instead.
 func (*PingResponse) Descriptor() ([]byte, []int) {
-	return file_latis_v1_control_proto_rawDescGZIP(), []int{1}
+	return file_tndrl_v1_control_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *PingResponse) GetPingTimestamp() int64 {
@@ -197,7 +197,7 @@ type GetStatusRequest struct {
 
 func (x *GetStatusRequest) Reset() {
 	*x = GetStatusRequest{}
-	mi := &file_latis_v1_control_proto_msgTypes[2]
+	mi := &file_tndrl_v1_control_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -209,7 +209,7 @@ func (x *GetStatusRequest) String() string {
 func (*GetStatusRequest) ProtoMessage() {}
 
 func (x *GetStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_latis_v1_control_proto_msgTypes[2]
+	mi := &file_tndrl_v1_control_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -222,7 +222,7 @@ func (x *GetStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetStatusRequest) Descriptor() ([]byte, []int) {
-	return file_latis_v1_control_proto_rawDescGZIP(), []int{2}
+	return file_tndrl_v1_control_proto_rawDescGZIP(), []int{2}
 }
 
 type GetStatusResponse struct {
@@ -230,7 +230,7 @@ type GetStatusResponse struct {
 	// Node identity (SPIFFE URI).
 	Identity string `protobuf:"bytes,1,opt,name=identity,proto3" json:"identity,omitempty"`
 	// Current state of the node.
-	State NodeState `protobuf:"varint,2,opt,name=state,proto3,enum=latis.v1.NodeState" json:"state,omitempty"`
+	State NodeState `protobuf:"varint,2,opt,name=state,proto3,enum=tndrl.v1.NodeState" json:"state,omitempty"`
 	// Uptime in seconds.
 	UptimeSeconds int64 `protobuf:"varint,3,opt,name=uptime_seconds,json=uptimeSeconds,proto3" json:"uptime_seconds,omitempty"`
 	// Number of active tasks.
@@ -243,7 +243,7 @@ type GetStatusResponse struct {
 
 func (x *GetStatusResponse) Reset() {
 	*x = GetStatusResponse{}
-	mi := &file_latis_v1_control_proto_msgTypes[3]
+	mi := &file_tndrl_v1_control_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -255,7 +255,7 @@ func (x *GetStatusResponse) String() string {
 func (*GetStatusResponse) ProtoMessage() {}
 
 func (x *GetStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_latis_v1_control_proto_msgTypes[3]
+	mi := &file_tndrl_v1_control_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -268,7 +268,7 @@ func (x *GetStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetStatusResponse) Descriptor() ([]byte, []int) {
-	return file_latis_v1_control_proto_rawDescGZIP(), []int{3}
+	return file_tndrl_v1_control_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetStatusResponse) GetIdentity() string {
@@ -320,7 +320,7 @@ type ShutdownRequest struct {
 
 func (x *ShutdownRequest) Reset() {
 	*x = ShutdownRequest{}
-	mi := &file_latis_v1_control_proto_msgTypes[4]
+	mi := &file_tndrl_v1_control_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -332,7 +332,7 @@ func (x *ShutdownRequest) String() string {
 func (*ShutdownRequest) ProtoMessage() {}
 
 func (x *ShutdownRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_latis_v1_control_proto_msgTypes[4]
+	mi := &file_tndrl_v1_control_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -345,7 +345,7 @@ func (x *ShutdownRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShutdownRequest.ProtoReflect.Descriptor instead.
 func (*ShutdownRequest) Descriptor() ([]byte, []int) {
-	return file_latis_v1_control_proto_rawDescGZIP(), []int{4}
+	return file_tndrl_v1_control_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ShutdownRequest) GetGraceful() bool {
@@ -381,7 +381,7 @@ type ShutdownResponse struct {
 
 func (x *ShutdownResponse) Reset() {
 	*x = ShutdownResponse{}
-	mi := &file_latis_v1_control_proto_msgTypes[5]
+	mi := &file_tndrl_v1_control_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -393,7 +393,7 @@ func (x *ShutdownResponse) String() string {
 func (*ShutdownResponse) ProtoMessage() {}
 
 func (x *ShutdownResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_latis_v1_control_proto_msgTypes[5]
+	mi := &file_tndrl_v1_control_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -406,7 +406,7 @@ func (x *ShutdownResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShutdownResponse.ProtoReflect.Descriptor instead.
 func (*ShutdownResponse) Descriptor() ([]byte, []int) {
-	return file_latis_v1_control_proto_rawDescGZIP(), []int{5}
+	return file_tndrl_v1_control_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ShutdownResponse) GetAccepted() bool {
@@ -423,11 +423,11 @@ func (x *ShutdownResponse) GetRejectionReason() string {
 	return ""
 }
 
-var File_latis_v1_control_proto protoreflect.FileDescriptor
+var File_tndrl_v1_control_proto protoreflect.FileDescriptor
 
-const file_latis_v1_control_proto_rawDesc = "" +
+const file_tndrl_v1_control_proto_rawDesc = "" +
 	"\n" +
-	"\x16latis/v1/control.proto\x12\blatis.v1\"+\n" +
+	"\x16tndrl/v1/control.proto\x12\btndrl.v1\"+\n" +
 	"\vPingRequest\x12\x1c\n" +
 	"\ttimestamp\x18\x01 \x01(\x03R\ttimestamp\"\\\n" +
 	"\fPingResponse\x12%\n" +
@@ -436,10 +436,10 @@ const file_latis_v1_control_proto_rawDesc = "" +
 	"\x10GetStatusRequest\"\xa8\x02\n" +
 	"\x11GetStatusResponse\x12\x1a\n" +
 	"\bidentity\x18\x01 \x01(\tR\bidentity\x12)\n" +
-	"\x05state\x18\x02 \x01(\x0e2\x13.latis.v1.NodeStateR\x05state\x12%\n" +
+	"\x05state\x18\x02 \x01(\x0e2\x13.tndrl.v1.NodeStateR\x05state\x12%\n" +
 	"\x0euptime_seconds\x18\x03 \x01(\x03R\ruptimeSeconds\x12!\n" +
 	"\factive_tasks\x18\x04 \x01(\x05R\vactiveTasks\x12E\n" +
-	"\bmetadata\x18\x05 \x03(\v2).latis.v1.GetStatusResponse.MetadataEntryR\bmetadata\x1a;\n" +
+	"\bmetadata\x18\x05 \x03(\v2).tndrl.v1.GetStatusResponse.MetadataEntryR\bmetadata\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"n\n" +
@@ -458,44 +458,44 @@ const file_latis_v1_control_proto_rawDesc = "" +
 	"\x13NODE_STATE_DRAINING\x10\x04\x12\x16\n" +
 	"\x12NODE_STATE_STOPPED\x10\x052\xd0\x01\n" +
 	"\x0eControlService\x125\n" +
-	"\x04Ping\x12\x15.latis.v1.PingRequest\x1a\x16.latis.v1.PingResponse\x12D\n" +
-	"\tGetStatus\x12\x1a.latis.v1.GetStatusRequest\x1a\x1b.latis.v1.GetStatusResponse\x12A\n" +
-	"\bShutdown\x12\x19.latis.v1.ShutdownRequest\x1a\x1a.latis.v1.ShutdownResponseB\x90\x01\n" +
-	"\fcom.latis.v1B\fControlProtoP\x01Z1github.com/shanemcd/latis/gen/go/latis/v1;latisv1\xa2\x02\x03LXX\xaa\x02\bLatis.V1\xca\x02\bLatis\\V1\xe2\x02\x14Latis\\V1\\GPBMetadata\xea\x02\tLatis::V1b\x06proto3"
+	"\x04Ping\x12\x15.tndrl.v1.PingRequest\x1a\x16.tndrl.v1.PingResponse\x12D\n" +
+	"\tGetStatus\x12\x1a.tndrl.v1.GetStatusRequest\x1a\x1b.tndrl.v1.GetStatusResponse\x12A\n" +
+	"\bShutdown\x12\x19.tndrl.v1.ShutdownRequest\x1a\x1a.tndrl.v1.ShutdownResponseB\x90\x01\n" +
+	"\fcom.tndrl.v1B\fControlProtoP\x01Z1github.com/shanemcd/tndrl/gen/go/tndrl/v1;tndrlv1\xa2\x02\x03TXX\xaa\x02\bTndrl.V1\xca\x02\bTndrl\\V1\xe2\x02\x14Tndrl\\V1\\GPBMetadata\xea\x02\tTndrl::V1b\x06proto3"
 
 var (
-	file_latis_v1_control_proto_rawDescOnce sync.Once
-	file_latis_v1_control_proto_rawDescData []byte
+	file_tndrl_v1_control_proto_rawDescOnce sync.Once
+	file_tndrl_v1_control_proto_rawDescData []byte
 )
 
-func file_latis_v1_control_proto_rawDescGZIP() []byte {
-	file_latis_v1_control_proto_rawDescOnce.Do(func() {
-		file_latis_v1_control_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_latis_v1_control_proto_rawDesc), len(file_latis_v1_control_proto_rawDesc)))
+func file_tndrl_v1_control_proto_rawDescGZIP() []byte {
+	file_tndrl_v1_control_proto_rawDescOnce.Do(func() {
+		file_tndrl_v1_control_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_tndrl_v1_control_proto_rawDesc), len(file_tndrl_v1_control_proto_rawDesc)))
 	})
-	return file_latis_v1_control_proto_rawDescData
+	return file_tndrl_v1_control_proto_rawDescData
 }
 
-var file_latis_v1_control_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_latis_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-var file_latis_v1_control_proto_goTypes = []any{
-	(NodeState)(0),            // 0: latis.v1.NodeState
-	(*PingRequest)(nil),       // 1: latis.v1.PingRequest
-	(*PingResponse)(nil),      // 2: latis.v1.PingResponse
-	(*GetStatusRequest)(nil),  // 3: latis.v1.GetStatusRequest
-	(*GetStatusResponse)(nil), // 4: latis.v1.GetStatusResponse
-	(*ShutdownRequest)(nil),   // 5: latis.v1.ShutdownRequest
-	(*ShutdownResponse)(nil),  // 6: latis.v1.ShutdownResponse
-	nil,                       // 7: latis.v1.GetStatusResponse.MetadataEntry
+var file_tndrl_v1_control_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_tndrl_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_tndrl_v1_control_proto_goTypes = []any{
+	(NodeState)(0),            // 0: tndrl.v1.NodeState
+	(*PingRequest)(nil),       // 1: tndrl.v1.PingRequest
+	(*PingResponse)(nil),      // 2: tndrl.v1.PingResponse
+	(*GetStatusRequest)(nil),  // 3: tndrl.v1.GetStatusRequest
+	(*GetStatusResponse)(nil), // 4: tndrl.v1.GetStatusResponse
+	(*ShutdownRequest)(nil),   // 5: tndrl.v1.ShutdownRequest
+	(*ShutdownResponse)(nil),  // 6: tndrl.v1.ShutdownResponse
+	nil,                       // 7: tndrl.v1.GetStatusResponse.MetadataEntry
 }
-var file_latis_v1_control_proto_depIdxs = []int32{
-	0, // 0: latis.v1.GetStatusResponse.state:type_name -> latis.v1.NodeState
-	7, // 1: latis.v1.GetStatusResponse.metadata:type_name -> latis.v1.GetStatusResponse.MetadataEntry
-	1, // 2: latis.v1.ControlService.Ping:input_type -> latis.v1.PingRequest
-	3, // 3: latis.v1.ControlService.GetStatus:input_type -> latis.v1.GetStatusRequest
-	5, // 4: latis.v1.ControlService.Shutdown:input_type -> latis.v1.ShutdownRequest
-	2, // 5: latis.v1.ControlService.Ping:output_type -> latis.v1.PingResponse
-	4, // 6: latis.v1.ControlService.GetStatus:output_type -> latis.v1.GetStatusResponse
-	6, // 7: latis.v1.ControlService.Shutdown:output_type -> latis.v1.ShutdownResponse
+var file_tndrl_v1_control_proto_depIdxs = []int32{
+	0, // 0: tndrl.v1.GetStatusResponse.state:type_name -> tndrl.v1.NodeState
+	7, // 1: tndrl.v1.GetStatusResponse.metadata:type_name -> tndrl.v1.GetStatusResponse.MetadataEntry
+	1, // 2: tndrl.v1.ControlService.Ping:input_type -> tndrl.v1.PingRequest
+	3, // 3: tndrl.v1.ControlService.GetStatus:input_type -> tndrl.v1.GetStatusRequest
+	5, // 4: tndrl.v1.ControlService.Shutdown:input_type -> tndrl.v1.ShutdownRequest
+	2, // 5: tndrl.v1.ControlService.Ping:output_type -> tndrl.v1.PingResponse
+	4, // 6: tndrl.v1.ControlService.GetStatus:output_type -> tndrl.v1.GetStatusResponse
+	6, // 7: tndrl.v1.ControlService.Shutdown:output_type -> tndrl.v1.ShutdownResponse
 	5, // [5:8] is the sub-list for method output_type
 	2, // [2:5] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -503,27 +503,27 @@ var file_latis_v1_control_proto_depIdxs = []int32{
 	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_latis_v1_control_proto_init() }
-func file_latis_v1_control_proto_init() {
-	if File_latis_v1_control_proto != nil {
+func init() { file_tndrl_v1_control_proto_init() }
+func file_tndrl_v1_control_proto_init() {
+	if File_tndrl_v1_control_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_latis_v1_control_proto_rawDesc), len(file_latis_v1_control_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tndrl_v1_control_proto_rawDesc), len(file_tndrl_v1_control_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_latis_v1_control_proto_goTypes,
-		DependencyIndexes: file_latis_v1_control_proto_depIdxs,
-		EnumInfos:         file_latis_v1_control_proto_enumTypes,
-		MessageInfos:      file_latis_v1_control_proto_msgTypes,
+		GoTypes:           file_tndrl_v1_control_proto_goTypes,
+		DependencyIndexes: file_tndrl_v1_control_proto_depIdxs,
+		EnumInfos:         file_tndrl_v1_control_proto_enumTypes,
+		MessageInfos:      file_tndrl_v1_control_proto_msgTypes,
 	}.Build()
-	File_latis_v1_control_proto = out.File
-	file_latis_v1_control_proto_goTypes = nil
-	file_latis_v1_control_proto_depIdxs = nil
+	File_tndrl_v1_control_proto = out.File
+	file_tndrl_v1_control_proto_goTypes = nil
+	file_tndrl_v1_control_proto_depIdxs = nil
 }

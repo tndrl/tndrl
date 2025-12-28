@@ -1,4 +1,4 @@
-// latis is the CLI and control plane for distributed AI agents.
+// tndrl is the CLI and control plane for distributed AI agents.
 package main
 
 import (
@@ -54,7 +54,7 @@ func main() {
 	// Parse CLI args into fresh struct
 	var cliArgs CLI
 	ctx := kong.Parse(&cliArgs,
-		kong.Name("latis"),
+		kong.Name("tndrl"),
 		kong.Description("Distributed AI agent control plane"),
 		kong.UsageOnError(),
 	)

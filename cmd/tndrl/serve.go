@@ -15,15 +15,15 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 
-	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
-	"github.com/shanemcd/latis/pkg/a2aexec"
-	"github.com/shanemcd/latis/pkg/control"
-	"github.com/shanemcd/latis/pkg/llm"
-	"github.com/shanemcd/latis/pkg/pki"
-	quictransport "github.com/shanemcd/latis/pkg/transport/quic"
+	tndrlv1 "github.com/shanemcd/tndrl/gen/go/tndrl/v1"
+	"github.com/shanemcd/tndrl/pkg/a2aexec"
+	"github.com/shanemcd/tndrl/pkg/control"
+	"github.com/shanemcd/tndrl/pkg/llm"
+	"github.com/shanemcd/tndrl/pkg/pki"
+	quictransport "github.com/shanemcd/tndrl/pkg/transport/quic"
 )
 
-// ServeCmd runs latis as a daemon, listening for incoming connections.
+// ServeCmd runs tndrl as a daemon, listening for incoming connections.
 type ServeCmd struct{}
 
 // Run executes the serve command.
@@ -109,7 +109,7 @@ func newServer(cfg serverConfig) *server {
 	// Create control server
 	s.controlServer = grpc.NewServer()
 	controlSvc := control.NewServer(s.state, s.triggerShutdown)
-	latisv1.RegisterControlServiceServer(s.controlServer, controlSvc)
+	tndrlv1.RegisterControlServiceServer(s.controlServer, controlSvc)
 
 	// Create A2A server with LLM provider
 	s.a2aServer = grpc.NewServer()

@@ -1,36 +1,36 @@
-# Latis
+# Tndrl
 
 A control plane for distributed AI agents built on the [A2A protocol](https://a2a-protocol.org/).
 
-Latis provides a unified interface for orchestrating AI agents running across multiple machines, containers, and environments. It's transport-agnostic, agent-agnostic, and designed to scale from a single local agent to coordinated fleets.
+Tndrl provides a unified interface for orchestrating AI agents running across multiple machines, containers, and environments. It's transport-agnostic, agent-agnostic, and designed to scale from a single local agent to coordinated fleets.
 
 ## Quickstart
 
 ```bash
 # Terminal 1: Start a node as a daemon
-latis serve -c examples/echo.yaml
+tndrl serve -c examples/echo.yaml
 
 # Terminal 2: Interact with the node (using named peer from config)
-latis ping -c examples/echo.yaml local
-latis status -c examples/echo.yaml local
-latis prompt -c examples/echo.yaml local "Hello, what can you do?"
-latis discover -c examples/echo.yaml local
+tndrl ping -c examples/echo.yaml local
+tndrl status -c examples/echo.yaml local
+tndrl prompt -c examples/echo.yaml local "Hello, what can you do?"
+tndrl discover -c examples/echo.yaml local
 ```
 
 Or with CLI flags only (no config file):
 
 ```bash
-latis serve --pki-init --llm-provider=echo
-latis ping localhost:4433
+tndrl serve --pki-init --llm-provider=echo
+tndrl ping localhost:4433
 ```
 
 ## Architecture
 
-Latis uses a **peer-to-peer** model where any node can both serve requests and connect to other nodes.
+Tndrl uses a **peer-to-peer** model where any node can both serve requests and connect to other nodes.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                         latis node                          │
+│                         tndrl node                          │
 │                                                             │
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────────┐ │
 │  │   A2A       │    │   Control   │    │      LLM        │ │
@@ -55,18 +55,18 @@ Latis uses a **peer-to-peer** model where any node can both serve requests and c
 
 | Command | Description |
 |---------|-------------|
-| `latis serve` | Run as daemon, listen for connections |
-| `latis ping <peer>` | Ping a peer node |
-| `latis status <peer>` | Get peer status |
-| `latis prompt <peer> <message>` | Send prompt via A2A |
-| `latis discover <peer>` | Fetch peer's AgentCard (capabilities) |
-| `latis shutdown <peer>` | Request peer shutdown |
+| `tndrl serve` | Run as daemon, listen for connections |
+| `tndrl ping <peer>` | Ping a peer node |
+| `tndrl status <peer>` | Get peer status |
+| `tndrl prompt <peer> <message>` | Send prompt via A2A |
+| `tndrl discover <peer>` | Fetch peer's AgentCard (capabilities) |
+| `tndrl shutdown <peer>` | Request peer shutdown |
 
 All commands support `--help` for detailed options.
 
 ## Configuration
 
-Latis uses a unified configuration system where CLI flags, environment variables, and config files all derive from the same schema.
+Tndrl uses a unified configuration system where CLI flags, environment variables, and config files all derive from the same schema.
 
 **Precedence**: CLI flags > environment variables > config file > defaults
 
@@ -94,7 +94,7 @@ llm:
   url: http://localhost:11434/v1
 
 pki:
-  dir: ~/.latis/pki
+  dir: ~/.tndrl/pki
   init: true
 
 peers:
@@ -106,18 +106,18 @@ peers:
 
 ```bash
 # Use a config file
-latis serve -c config.yaml
+tndrl serve -c config.yaml
 
 # Override config with CLI flags
-latis serve -c config.yaml --llm-model=mistral
+tndrl serve -c config.yaml --llm-model=mistral
 
 # Use environment variables
-LATIS_LLM_PROVIDER=ollama latis serve
+TNDRL_LLM_PROVIDER=ollama tndrl serve
 ```
 
 ## LLM Providers
 
-Latis requires an LLM provider to be configured:
+Tndrl requires an LLM provider to be configured:
 
 | Provider | Description |
 |----------|-------------|
@@ -127,16 +127,16 @@ Latis requires an LLM provider to be configured:
 
 ```bash
 # For testing
-latis serve --pki-init --llm-provider=echo
+tndrl serve --pki-init --llm-provider=echo
 
 # With Ollama
-latis serve --pki-init --llm-provider=ollama --llm-model=llama3.2
+tndrl serve --pki-init --llm-provider=ollama --llm-model=llama3.2
 
 # With custom URL
-latis serve --pki-init --llm-provider=ollama --llm-model=llama3.2 --llm-url=http://ollama:11434/v1
+tndrl serve --pki-init --llm-provider=ollama --llm-model=llama3.2 --llm-url=http://ollama:11434/v1
 
 # With MCP tools (see examples/mcphost.yaml)
-latis serve -c examples/mcphost.yaml
+tndrl serve -c examples/mcphost.yaml
 ```
 
 ## Security
@@ -144,16 +144,16 @@ latis serve -c examples/mcphost.yaml
 All connections use **mTLS** (mutual TLS) — both sides present and verify certificates.
 
 Key features:
-- **Built-in CA** — Latis generates and manages its own certificate authority
+- **Built-in CA** — Tndrl generates and manages its own certificate authority
 - **BYO CA** — Bring your own root certificate for enterprise deployments
 - **SPIFFE-compatible** — Certificate identities use SPIFFE URI format
 - **TLS 1.3** — Modern encryption via QUIC
 
 ```bash
 # Initialize PKI (creates CA + node certificate)
-latis serve --pki-init
+tndrl serve --pki-init
 
-# Certificates are stored in ~/.latis/pki/
+# Certificates are stored in ~/.tndrl/pki/
 ```
 
 ## Peer Discovery
@@ -161,7 +161,7 @@ latis serve --pki-init
 Nodes can discover each other's capabilities via the A2A AgentCard:
 
 ```bash
-$ latis discover backend.local:4433
+$ tndrl discover backend.local:4433
 
 Agent: backend-agent
 Description: Backend processing agent
@@ -189,8 +189,8 @@ peers:
 Then use peer names in commands:
 
 ```bash
-latis prompt -c examples/echo.yaml local "Hello!"
-latis status -c examples/echo.yaml local
+tndrl prompt -c examples/echo.yaml local "Hello!"
+tndrl status -c examples/echo.yaml local
 ```
 
 ## Design Principles
@@ -198,7 +198,7 @@ latis status -c examples/echo.yaml local
 - **A2A protocol alignment** — agent communication follows the [A2A spec](https://a2a-protocol.org/)
 - **Transport agnostic** — QUIC today, more transports tomorrow
 - **Peer-to-peer** — any node can both serve and connect
-- **Single binary** — one `latis` binary for all roles
+- **Single binary** — one `tndrl` binary for all roles
 - **Config-driven** — unified CLI/env/file configuration
 
 ## Documentation
@@ -215,7 +215,7 @@ latis status -c examples/echo.yaml local
 
 ## Name
 
-Latis: from "lattice" — a structure of interconnected points. Agents connected across a distributed mesh.
+Tndrl: from "lattice" — a structure of interconnected points. Agents connected across a distributed mesh.
 
 Or if you prefer acronyms: **L**inked **A**gent **T**ransport & **I**nterconnection **S**ystem.
 

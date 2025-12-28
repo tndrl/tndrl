@@ -34,7 +34,7 @@ type MCPHostOptions struct {
 
 	// MCPConfigFile is the path to an external mcphost config file.
 	// If set, this takes precedence over MCPServers.
-	// This allows reusing a standalone mcphost config with Latis.
+	// This allows reusing a standalone mcphost config with Tndrl.
 	MCPConfigFile string
 
 	// MCPServers maps server names to their configurations.
@@ -130,7 +130,7 @@ func writeTempConfig(servers map[string]MCPServerConfig) (string, error) {
 		return "", fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	f, err := os.CreateTemp("", "latis-mcphost-*.yaml")
+	f, err := os.CreateTemp("", "tndrl-mcphost-*.yaml")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}

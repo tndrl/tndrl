@@ -7,7 +7,7 @@ import (
 	"github.com/a2aproject/a2a-go/a2a"
 	"github.com/a2aproject/a2a-go/a2asrv"
 
-	"github.com/shanemcd/latis/pkg/llm"
+	"github.com/shanemcd/tndrl/pkg/llm"
 )
 
 // testQueue is a simple queue for testing that collects events.

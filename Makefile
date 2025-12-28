@@ -23,7 +23,7 @@ test-integration:
 
 # Build binaries
 build:
-	go build -o bin/latis ./cmd/latis
+	go build -o bin/tndrl ./cmd/tndrl
 
 # Clean build artifacts
 clean:

@@ -1,4 +1,4 @@
-// latis/v1/control.proto
+// tndrl/v1/control.proto
 //
 // Control plane protocol for node lifecycle and health management.
 //
@@ -13,9 +13,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             (unknown)
-// source: latis/v1/control.proto
+// source: tndrl/v1/control.proto
 
-package latisv1
+package tndrlv1
 
 import (
 	context "context"
@@ -30,9 +30,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ControlService_Ping_FullMethodName      = "/latis.v1.ControlService/Ping"
-	ControlService_GetStatus_FullMethodName = "/latis.v1.ControlService/GetStatus"
-	ControlService_Shutdown_FullMethodName  = "/latis.v1.ControlService/Shutdown"
+	ControlService_Ping_FullMethodName      = "/tndrl.v1.ControlService/Ping"
+	ControlService_GetStatus_FullMethodName = "/tndrl.v1.ControlService/GetStatus"
+	ControlService_Shutdown_FullMethodName  = "/tndrl.v1.ControlService/Shutdown"
 )
 
 // ControlServiceClient is the client API for ControlService service.
@@ -199,7 +199,7 @@ func _ControlService_Shutdown_Handler(srv interface{}, ctx context.Context, dec 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ControlService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "latis.v1.ControlService",
+	ServiceName: "tndrl.v1.ControlService",
 	HandlerType: (*ControlServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -216,5 +216,5 @@ var ControlService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "latis/v1/control.proto",
+	Metadata: "tndrl/v1/control.proto",
 }

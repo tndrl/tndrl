@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
+	tndrlv1 "github.com/shanemcd/tndrl/gen/go/tndrl/v1"
 )
 
 func TestPing(t *testing.T) {
@@ -14,7 +14,7 @@ func TestPing(t *testing.T) {
 	server := NewServer(state, nil)
 
 	now := time.Now().UnixNano()
-	req := &latisv1.PingRequest{Timestamp: now}
+	req := &tndrlv1.PingRequest{Timestamp: now}
 
 	resp, err := server.Ping(context.Background(), req)
 	if err != nil {
@@ -30,21 +30,21 @@ func TestPing(t *testing.T) {
 }
 
 func TestGetStatus(t *testing.T) {
-	state := NewState("spiffe://latis/node/test-node")
+	state := NewState("spiffe://tndrl/node/test-node")
 	state.SetReady()
 	state.SetMetadata("version", "1.0.0")
 
 	server := NewServer(state, nil)
 
-	resp, err := server.GetStatus(context.Background(), &latisv1.GetStatusRequest{})
+	resp, err := server.GetStatus(context.Background(), &tndrlv1.GetStatusRequest{})
 	if err != nil {
 		t.Fatalf("GetStatus failed: %v", err)
 	}
 
-	if resp.Identity != "spiffe://latis/node/test-node" {
-		t.Errorf("expected identity 'spiffe://latis/node/test-node', got %v", resp.Identity)
+	if resp.Identity != "spiffe://tndrl/node/test-node" {
+		t.Errorf("expected identity 'spiffe://tndrl/node/test-node', got %v", resp.Identity)
 	}
-	if resp.State != latisv1.NodeState_NODE_STATE_READY {
+	if resp.State != tndrlv1.NodeState_NODE_STATE_READY {
 		t.Errorf("expected READY state, got %v", resp.State)
 	}
 	if resp.ActiveTasks != 0 {
@@ -73,7 +73,7 @@ func TestShutdown(t *testing.T) {
 
 	server := NewServer(state, shutdownFn)
 
-	req := &latisv1.ShutdownRequest{
+	req := &tndrlv1.ShutdownRequest{
 		Graceful:       true,
 		TimeoutSeconds: 30,
 		Reason:         "test shutdown",
@@ -111,7 +111,7 @@ func TestShutdownAlreadyDraining(t *testing.T) {
 
 	server := NewServer(state, nil)
 
-	resp, err := server.Shutdown(context.Background(), &latisv1.ShutdownRequest{})
+	resp, err := server.Shutdown(context.Background(), &tndrlv1.ShutdownRequest{})
 	if err != nil {
 		t.Fatalf("Shutdown failed: %v", err)
 	}
@@ -130,7 +130,7 @@ func TestShutdownAlreadyStopped(t *testing.T) {
 
 	server := NewServer(state, nil)
 
-	resp, err := server.Shutdown(context.Background(), &latisv1.ShutdownRequest{})
+	resp, err := server.Shutdown(context.Background(), &tndrlv1.ShutdownRequest{})
 	if err != nil {
 		t.Fatalf("Shutdown failed: %v", err)
 	}

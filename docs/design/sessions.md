@@ -1,6 +1,6 @@
 # Sessions
 
-Design document for latis session management — orchestrating isolated agent environments.
+Design document for tndrl session management — orchestrating isolated agent environments.
 
 ## Motivation
 
@@ -18,7 +18,7 @@ This requires:
 
 A session is a unit of work with:
 - A provisioned environment (container, VM, pod)
-- A running latis node inside that environment
+- A running tndrl node inside that environment
 - Conversation history (multi-turn context)
 - A task description
 - Lifecycle state
@@ -36,7 +36,7 @@ A driver provisions and manages execution environments. Different drivers suppor
      │
      ▼
 ┌─────────┐
-│ starting│ ── latis node booting, connecting
+│ starting│ ── tndrl node booting, connecting
 └────┬────┘
      │
      ▼
@@ -69,23 +69,23 @@ A driver provisions and manages execution environments. Different drivers suppor
 
 ```bash
 # Minimal
-latis session create --task "Fix the failing tests"
+tndrl session create --task "Fix the failing tests"
 
 # With driver options
-latis session create \
+tndrl session create \
     --driver podman \
-    --image ghcr.io/shanemcd/latis-workspace:latest \
+    --image ghcr.io/shanemcd/tndrl-workspace:latest \
     --mount ./myrepo:/workspace \
     --task "Fix the failing tests in this repo"
 
 # From a config file
-latis session create -c session.yaml
+tndrl session create -c session.yaml
 ```
 
 ### List sessions
 
 ```bash
-$ latis session list
+$ tndrl session list
 ID       DRIVER   STATUS    TASK                        AGE
 s-7f3a   podman   working   Fix the failing tests       2m
 s-9b2c   k8s      waiting   Refactor auth module        1h
@@ -95,7 +95,7 @@ s-1d4e   podman   complete  Add unit tests              3h
 ### Attach to a session
 
 ```bash
-$ latis session attach s-7f3a
+$ tndrl session attach s-7f3a
 
 # Interactive conversation with the agent
 Agent: I fixed 2 of 3 failing tests. TestDatabaseMigration requires
@@ -113,16 +113,16 @@ Agent: On it...
 
 ```bash
 # View session logs
-latis session logs s-7f3a
+tndrl session logs s-7f3a
 
 # Get session status/details
-latis session status s-7f3a
+tndrl session status s-7f3a
 
 # Delete a session (tears down environment)
-latis session delete s-7f3a
+tndrl session delete s-7f3a
 
 # Delete all completed sessions
-latis session prune
+tndrl session prune
 ```
 
 ## Driver Interface
@@ -133,7 +133,7 @@ type Driver interface {
     // Name returns the driver identifier (e.g., "podman", "kubernetes").
     Name() string
 
-    // Create provisions a new environment and starts a latis node.
+    // Create provisions a new environment and starts a tndrl node.
     // Returns the session ID and endpoint to connect to the node.
     Create(ctx context.Context, opts CreateOptions) (*Environment, error)
 
@@ -168,7 +168,7 @@ type Environment struct {
     // ID is the unique session identifier.
     ID string
 
-    // Endpoint is the address to connect to the latis node.
+    // Endpoint is the address to connect to the tndrl node.
     Endpoint string
 
     // Driver is the driver that created this environment.
@@ -191,11 +191,11 @@ Runs agents in podman containers. Good for local development and single-machine 
 ```yaml
 driver: podman
 podman:
-  image: ghcr.io/shanemcd/latis-workspace:latest
+  image: ghcr.io/shanemcd/tndrl-workspace:latest
   mounts:
     - ./repo:/workspace:Z
   ports:
-    - "4433"  # latis node port, auto-assigned host port
+    - "4433"  # tndrl node port, auto-assigned host port
   flags:
     - "--userns=keep-id"
     - "--security-opt=label=disable"
@@ -212,12 +212,12 @@ Runs agents as pods in a Kubernetes cluster. Good for teams and production deplo
 ```yaml
 driver: kubernetes
 kubernetes:
-  namespace: latis-sessions
-  serviceAccount: latis-agent
+  namespace: tndrl-sessions
+  serviceAccount: tndrl-agent
   podSpec:
     containers:
       - name: agent
-        image: ghcr.io/shanemcd/latis-workspace:latest
+        image: ghcr.io/shanemcd/tndrl-workspace:latest
         resources:
           requests:
             memory: "2Gi"
@@ -243,14 +243,14 @@ Runs agents in virtual machines. Maximum isolation, good for untrusted workloads
 ```yaml
 driver: qemu
 qemu:
-  image: /var/lib/latis/images/fedora-dev.qcow2
+  image: /var/lib/tndrl/images/fedora-dev.qcow2
   memory: 4G
   cpus: 2
   flags:
     - "-enable-kvm"
   ssh:
-    user: latis
-    keyFile: ~/.ssh/latis_ed25519
+    user: tndrl
+    keyFile: ~/.ssh/tndrl_ed25519
 ```
 
 **Implementation:** Manages QEMU processes, SSH for connectivity.
@@ -262,10 +262,10 @@ No isolation — runs directly on host. Useful for development and testing.
 ```yaml
 driver: local
 local:
-  workdir: /tmp/latis-workspace
+  workdir: /tmp/tndrl-workspace
 ```
 
-**Implementation:** Just starts `latis serve` as a subprocess.
+**Implementation:** Just starts `tndrl serve` as a subprocess.
 
 ### SSH
 
@@ -275,9 +275,9 @@ Connects to an existing remote machine. No provisioning, just connection.
 driver: ssh
 ssh:
   host: dev-server.example.com
-  user: latis
+  user: tndrl
   keyFile: ~/.ssh/id_ed25519
-  # Assumes latis is already installed on remote
+  # Assumes tndrl is already installed on remote
 ```
 
 ## Session Storage
@@ -287,10 +287,10 @@ Sessions need persistent storage for:
 - Conversation history
 - Connection info
 
-**Local storage:** `~/.latis/sessions/`
+**Local storage:** `~/.tndrl/sessions/`
 
 ```
-~/.latis/sessions/
+~/.tndrl/sessions/
 ├── s-7f3a/
 │   ├── meta.json       # session metadata
 │   ├── history.json    # conversation history
@@ -319,7 +319,7 @@ type History struct {
 
 When attaching to a session, the CLI shows recent history for context.
 
-The latis node inside the environment needs access to this history to maintain context across attach/detach cycles. Options:
+The tndrl node inside the environment needs access to this history to maintain context across attach/detach cycles. Options:
 1. **Push model:** CLI sends history with each message
 2. **Pull model:** Node fetches history from shared storage
 3. **Local model:** Node maintains its own history, synced on attach
@@ -355,28 +355,28 @@ In streaming responses, agent emits a special marker indicating it's waiting. CL
 
 ```bash
 # 1. Create a session
-$ latis session create \
+$ tndrl session create \
     --driver podman \
-    --image ghcr.io/shanemcd/latis-workspace:latest \
+    --image ghcr.io/shanemcd/tndrl-workspace:latest \
     --mount ./myrepo:/workspace \
     --task "Fix the failing tests in this repo and open a PR"
 
 Creating session s-7f3a...
-Pulling image ghcr.io/shanemcd/latis-workspace:latest...
+Pulling image ghcr.io/shanemcd/tndrl-workspace:latest...
 Starting container...
-Waiting for latis node...
+Waiting for tndrl node...
 Connected.
 
 Session s-7f3a created.
 Agent is analyzing the codebase...
 
 # 2. Check status later
-$ latis session list
+$ tndrl session list
 ID       DRIVER   STATUS    TASK                        AGE
 s-7f3a   podman   waiting   Fix the failing tests...    12m
 
 # 3. Attach to provide input
-$ latis session attach s-7f3a
+$ tndrl session attach s-7f3a
 
 [Session s-7f3a - waiting for input]
 
@@ -396,12 +396,12 @@ Agent: Got it. I'll create a mock OAuth server for the tests...
 [Ctrl-D to detach]
 
 # 4. Agent continues working, eventually completes
-$ latis session list
+$ tndrl session list
 ID       DRIVER   STATUS    TASK                        AGE
 s-7f3a   podman   complete  Fix the failing tests...    47m
 
 # 5. View the result
-$ latis session attach s-7f3a
+$ tndrl session attach s-7f3a
 
 Agent: Done! I've opened PR #42: "Fix failing tests"
 https://github.com/you/myrepo/pull/42
@@ -416,7 +416,7 @@ Summary:
 All tests passing. PR is ready for review.
 
 # 6. Clean up
-$ latis session delete s-7f3a
+$ tndrl session delete s-7f3a
 Session s-7f3a deleted.
 ```
 
@@ -426,14 +426,14 @@ Pre-built container images with common development tools:
 
 | Image | Contents |
 |-------|----------|
-| `latis-workspace:base` | latis binary, basic shell tools |
-| `latis-workspace:go` | Go toolchain, gopls, common tools |
-| `latis-workspace:python` | Python, pip, common packages |
-| `latis-workspace:node` | Node.js, npm, common packages |
-| `latis-workspace:full` | All of the above |
+| `tndrl-workspace:base` | tndrl binary, basic shell tools |
+| `tndrl-workspace:go` | Go toolchain, gopls, common tools |
+| `tndrl-workspace:python` | Python, pip, common packages |
+| `tndrl-workspace:node` | Node.js, npm, common packages |
+| `tndrl-workspace:full` | All of the above |
 
 Images include:
-- `latis` binary configured to start on boot
+- `tndrl` binary configured to start on boot
 - Git, curl, jq, common CLI tools
 - Language-specific toolchains
 - Pre-configured for non-root user
@@ -471,7 +471,7 @@ Images include:
 
 ## Open Questions
 
-1. **Multi-node sessions:** Should a session be able to orchestrate multiple latis nodes? (e.g., one for code analysis, one for testing)
+1. **Multi-node sessions:** Should a session be able to orchestrate multiple tndrl nodes? (e.g., one for code analysis, one for testing)
 
 2. **Session templates:** Predefined session configs for common workflows?
 

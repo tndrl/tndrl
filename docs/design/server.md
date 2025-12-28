@@ -1,10 +1,10 @@
 # Server Mode
 
-How a Latis node operates as a server (daemon mode).
+How a Tndrl node operates as a server (daemon mode).
 
 ## Overview
 
-When you run `latis serve`, the node operates in server mode:
+When you run `tndrl serve`, the node operates in server mode:
 
 - Listens for incoming connections
 - Handles Control protocol requests (ping, status, shutdown)
@@ -15,7 +15,7 @@ When you run `latis serve`, the node operates in server mode:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      latis serve                             │
+│                      tndrl serve                             │
 │                                                             │
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────────┐ │
 │  │   A2A       │    │   Control   │    │      LLM        │ │
@@ -51,10 +51,10 @@ The server interfaces with AI models via pluggable LLM providers:
 
 ```bash
 # Testing
-latis serve --pki-init --llm-provider=echo
+tndrl serve --pki-init --llm-provider=echo
 
 # Production
-latis serve --pki-init --llm-provider=ollama --llm-model=llama3.2
+tndrl serve --pki-init --llm-provider=ollama --llm-model=llama3.2
 ```
 
 Provider implementation: `pkg/llm/`
@@ -112,7 +112,7 @@ llm:
   model: llama3.2
 
 pki:
-  dir: ~/.latis/pki
+  dir: ~/.tndrl/pki
   init: true
 ```
 

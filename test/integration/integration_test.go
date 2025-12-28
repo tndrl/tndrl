@@ -11,10 +11,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	latisv1 "github.com/shanemcd/latis/gen/go/latis/v1"
-	"github.com/shanemcd/latis/pkg/a2aexec"
-	"github.com/shanemcd/latis/pkg/pki"
-	quictransport "github.com/shanemcd/latis/pkg/transport/quic"
+	tndrlv1 "github.com/shanemcd/tndrl/gen/go/tndrl/v1"
+	"github.com/shanemcd/tndrl/pkg/a2aexec"
+	"github.com/shanemcd/tndrl/pkg/pki"
+	quictransport "github.com/shanemcd/tndrl/pkg/transport/quic"
 )
 
 // muxTestEnv holds the multiplexed test environment
@@ -31,24 +31,24 @@ type muxTestEnv struct {
 
 // testControlServer implements ControlServiceServer for testing
 type testControlServer struct {
-	latisv1.UnimplementedControlServiceServer
+	tndrlv1.UnimplementedControlServiceServer
 	identity    string
 	shutdownCh  chan struct{}
 	startTime   time.Time
 	activeTasks int32
 }
 
-func (s *testControlServer) Ping(ctx context.Context, req *latisv1.PingRequest) (*latisv1.PingResponse, error) {
-	return &latisv1.PingResponse{
+func (s *testControlServer) Ping(ctx context.Context, req *tndrlv1.PingRequest) (*tndrlv1.PingResponse, error) {
+	return &tndrlv1.PingResponse{
 		PingTimestamp: req.Timestamp,
 		PongTimestamp: time.Now().UnixNano(),
 	}, nil
 }
 
-func (s *testControlServer) GetStatus(ctx context.Context, req *latisv1.GetStatusRequest) (*latisv1.GetStatusResponse, error) {
-	return &latisv1.GetStatusResponse{
+func (s *testControlServer) GetStatus(ctx context.Context, req *tndrlv1.GetStatusRequest) (*tndrlv1.GetStatusResponse, error) {
+	return &tndrlv1.GetStatusResponse{
 		Identity:      s.identity,
-		State:         latisv1.NodeState_NODE_STATE_READY,
+		State:         tndrlv1.NodeState_NODE_STATE_READY,
 		UptimeSeconds: int64(time.Since(s.startTime).Seconds()),
 		ActiveTasks:   s.activeTasks,
 		Metadata: map[string]string{
@@ -57,12 +57,12 @@ func (s *testControlServer) GetStatus(ctx context.Context, req *latisv1.GetStatu
 	}, nil
 }
 
-func (s *testControlServer) Shutdown(ctx context.Context, req *latisv1.ShutdownRequest) (*latisv1.ShutdownResponse, error) {
+func (s *testControlServer) Shutdown(ctx context.Context, req *tndrlv1.ShutdownRequest) (*tndrlv1.ShutdownResponse, error) {
 	select {
 	case s.shutdownCh <- struct{}{}:
 	default:
 	}
-	return &latisv1.ShutdownResponse{
+	return &tndrlv1.ShutdownResponse{
 		Accepted: true,
 	}, nil
 }
@@ -101,11 +101,11 @@ func setupMuxTestEnv(t *testing.T) *muxTestEnv {
 	// Create and start Control gRPC server
 	controlServer := grpc.NewServer()
 	testControl := &testControlServer{
-		identity:   "spiffe://latis/node/test-mux",
+		identity:   "spiffe://tndrl/node/test-mux",
 		shutdownCh: make(chan struct{}, 1),
 		startTime:  time.Now(),
 	}
-	latisv1.RegisterControlServiceServer(controlServer, testControl)
+	tndrlv1.RegisterControlServiceServer(controlServer, testControl)
 
 	go func() {
 		controlServer.Serve(listener.ControlListener())
@@ -152,7 +152,7 @@ func setupMuxTestEnv(t *testing.T) *muxTestEnv {
 	}
 }
 
-func (e *muxTestEnv) connectControl(t *testing.T) (latisv1.ControlServiceClient, func()) {
+func (e *muxTestEnv) connectControl(t *testing.T) (tndrlv1.ControlServiceClient, func()) {
 	t.Helper()
 
 	clientTLS, err := pki.ClientTLSConfig(e.clientCert, e.ca, "localhost")
@@ -171,7 +171,7 @@ func (e *muxTestEnv) connectControl(t *testing.T) (latisv1.ControlServiceClient,
 		t.Fatalf("NewClient: %v", err)
 	}
 
-	client := latisv1.NewControlServiceClient(conn)
+	client := tndrlv1.NewControlServiceClient(conn)
 	return client, func() {
 		conn.Close()
 		muxDialer.Close()
@@ -216,7 +216,7 @@ func TestControlPing(t *testing.T) {
 	defer cancel()
 
 	sendTime := time.Now().UnixNano()
-	resp, err := client.Ping(ctx, &latisv1.PingRequest{
+	resp, err := client.Ping(ctx, &tndrlv1.PingRequest{
 		Timestamp: sendTime,
 	})
 	if err != nil {
@@ -245,16 +245,16 @@ func TestControlGetStatus(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	resp, err := client.GetStatus(ctx, &latisv1.GetStatusRequest{})
+	resp, err := client.GetStatus(ctx, &tndrlv1.GetStatusRequest{})
 	if err != nil {
 		t.Fatalf("GetStatus: %v", err)
 	}
 
-	if resp.Identity != "spiffe://latis/node/test-mux" {
-		t.Errorf("Identity = %q, want %q", resp.Identity, "spiffe://latis/node/test-mux")
+	if resp.Identity != "spiffe://tndrl/node/test-mux" {
+		t.Errorf("Identity = %q, want %q", resp.Identity, "spiffe://tndrl/node/test-mux")
 	}
 
-	if resp.State != latisv1.NodeState_NODE_STATE_READY {
+	if resp.State != tndrlv1.NodeState_NODE_STATE_READY {
 		t.Errorf("State = %v, want READY", resp.State)
 	}
 
@@ -275,7 +275,7 @@ func TestControlShutdown(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	resp, err := client.Shutdown(ctx, &latisv1.ShutdownRequest{
+	resp, err := client.Shutdown(ctx, &tndrlv1.ShutdownRequest{
 		Graceful:       true,
 		TimeoutSeconds: 10,
 		Reason:         "integration test",
@@ -304,7 +304,7 @@ func TestControlMultiplePings(t *testing.T) {
 	numPings := 10
 	for i := 0; i < numPings; i++ {
 		sendTime := time.Now().UnixNano()
-		resp, err := client.Ping(ctx, &latisv1.PingRequest{
+		resp, err := client.Ping(ctx, &tndrlv1.PingRequest{
 			Timestamp: sendTime,
 		})
 		if err != nil {
@@ -333,7 +333,7 @@ func TestConnectionReuse(t *testing.T) {
 	defer muxDialer.Close()
 
 	// Create multiple gRPC connections - they should reuse the same QUIC connection
-	var clients []latisv1.ControlServiceClient
+	var clients []tndrlv1.ControlServiceClient
 	var conns []*grpc.ClientConn
 
 	for i := 0; i < 3; i++ {
@@ -346,7 +346,7 @@ func TestConnectionReuse(t *testing.T) {
 			t.Fatalf("NewClient %d: %v", i, err)
 		}
 		conns = append(conns, conn)
-		clients = append(clients, latisv1.NewControlServiceClient(conn))
+		clients = append(clients, tndrlv1.NewControlServiceClient(conn))
 	}
 
 	defer func() {
@@ -360,7 +360,7 @@ func TestConnectionReuse(t *testing.T) {
 
 	// All clients should work
 	for i, client := range clients {
-		_, err := client.Ping(ctx, &latisv1.PingRequest{
+		_, err := client.Ping(ctx, &tndrlv1.PingRequest{
 			Timestamp: time.Now().UnixNano(),
 		})
 		if err != nil {
@@ -407,12 +407,12 @@ func TestConnectionRequiresMTLS(t *testing.T) {
 	}
 	defer conn.Close()
 
-	client := latisv1.NewControlServiceClient(conn)
+	client := tndrlv1.NewControlServiceClient(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	_, err = client.Ping(ctx, &latisv1.PingRequest{
+	_, err = client.Ping(ctx, &tndrlv1.PingRequest{
 		Timestamp: time.Now().UnixNano(),
 	})
 	if err == nil {
@@ -540,7 +540,7 @@ func TestBothStreamsWork(t *testing.T) {
 	defer cancel()
 
 	// Use Control stream
-	pingResp, err := controlClient.Ping(ctx, &latisv1.PingRequest{
+	pingResp, err := controlClient.Ping(ctx, &tndrlv1.PingRequest{
 		Timestamp: time.Now().UnixNano(),
 	})
 	if err != nil {
@@ -568,7 +568,7 @@ func TestCleanupDoesNotHang(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := client.Ping(ctx, &latisv1.PingRequest{
+	_, err := client.Ping(ctx, &tndrlv1.PingRequest{
 		Timestamp: time.Now().UnixNano(),
 	})
 	if err != nil {
@@ -596,7 +596,7 @@ func TestCleanupDoesNotHang(t *testing.T) {
 
 func TestWrongCleanupOrderHangs(t *testing.T) {
 	// This test verifies that calling GracefulStop() BEFORE listener.Close() hangs.
-	// It demonstrates the bug that was in cmd/latis-unit/main.go.
+	// It demonstrates the bug that was in cmd/tndrl-unit/main.go.
 
 	ca, _ := pki.GenerateCA()
 	serverCert, _ := pki.GenerateCert(ca, pki.NodeIdentity("test"), true, false)
@@ -608,7 +608,7 @@ func TestWrongCleanupOrderHangs(t *testing.T) {
 	}
 
 	controlServer := grpc.NewServer()
-	latisv1.RegisterControlServiceServer(controlServer, &testControlServer{
+	tndrlv1.RegisterControlServiceServer(controlServer, &testControlServer{
 		identity:   "test",
 		shutdownCh: make(chan struct{}, 1),
 		startTime:  time.Now(),

@@ -1,6 +1,6 @@
 # Project Tracking
 
-Current focus and progress for Latis development.
+Current focus and progress for Tndrl development.
 
 ## Current Objective
 
@@ -27,8 +27,8 @@ Core use case: "turn loose" an AI agent in a sandboxed container where it can it
 - [x] `pkg/transport/quic/mux_test.go` — Tests for routing and connection reuse
 
 ### Control Protocol (PR #5 - merged)
-- [x] `proto/latis/v1/control.proto` — ControlService (Ping, GetStatus, Shutdown)
-- [x] Generated code in `gen/go/latis/v1/control*.go`
+- [x] `proto/tndrl/v1/control.proto` — ControlService (Ping, GetStatus, Shutdown)
+- [x] Generated code in `gen/go/tndrl/v1/control*.go`
 
 ### Test Infrastructure (PR #6 - merged)
 - [x] Added `go.uber.org/goleak` for goroutine leak detection
@@ -42,18 +42,18 @@ Core use case: "turn loose" an AI agent in a sandboxed container where it can it
 - [x] `pkg/control/state.go` — Unit state tracking (STARTING, READY, BUSY, DRAINING, STOPPED)
 - [x] `pkg/control/control.go` — ControlServiceServer implementation (Ping, GetStatus, Shutdown)
 - [x] `pkg/control/*_test.go` — Unit tests for control package
-- [x] Refactored `cmd/latis-unit/main.go` to use `MuxListener`
+- [x] Refactored `cmd/tndrl-unit/main.go` to use `MuxListener`
 - [x] Unit struct encapsulates both gRPC servers, state, and lifecycle
 - [x] Signal handling for graceful shutdown (SIGINT, SIGTERM)
 - [x] Shutdown RPC triggers graceful termination
 
 ### Cmdr Multiplexed Transport (PR #12 - merged)
-- [x] Refactored `cmd/latis/main.go` to use `MuxDialer`
+- [x] Refactored `cmd/tndrl/main.go` to use `MuxDialer`
 - [x] Control gRPC client via `muxDialer.ControlDialer()`
 - [x] `--status` flag for GetStatus RPC
 - [x] `--shutdown` flag for Shutdown RPC
 - [x] Default ping via ControlService.Ping
-- [x] Removed old LatisService bidirectional stream dependency
+- [x] Removed old TndrlService bidirectional stream dependency
 - [x] Integration tests for multiplexed Control stream (Ping, GetStatus, Shutdown)
 - [x] Connection reuse tests for MuxDialer
 
@@ -65,7 +65,7 @@ Core use case: "turn loose" an AI agent in a sandboxed container where it can it
 - [x] Deleted `pkg/dialer/` (unused interface)
 - [x] Deleted `pkg/listener/` (unused interface)
 - [x] Deleted `pkg/connector/` (unused abstraction)
-- [x] Removed legacy LatisService integration tests
+- [x] Removed legacy TndrlService integration tests
 
 ### A2A End-to-End (PR #15 - merged)
 - [x] A2A executor already wired in unit (from PR #10)
@@ -81,20 +81,20 @@ Core use case: "turn loose" an AI agent in a sandboxed container where it can it
 - [x] Unit listens on `[::]:4433` by default for dual-stack IPv4/IPv6 support
 
 ### Legacy Proto Cleanup (PR #18 - merged)
-- [x] Deleted `proto/latis/v1/latis.proto` (LatisService no longer used)
-- [x] Deleted generated `latis.pb.go` and `latis_grpc.pb.go`
+- [x] Deleted `proto/tndrl/v1/tndrl.proto` (TndrlService no longer used)
+- [x] Deleted generated `tndrl.pb.go` and `tndrl_grpc.pb.go`
 
 ### Unified Binary with LLM Providers (PR #19 - merged)
-- [x] Merged `latis` (cmdr) and `latis-unit` into single `latis` binary
+- [x] Merged `tndrl` (cmdr) and `tndrl-unit` into single `tndrl` binary
 - [x] Kong CLI framework with subcommands (serve, ping, status, prompt, discover, shutdown)
 - [x] Config loading with reflection-based merge (CLI > config file > defaults)
 - [x] Versioned config schema (v1)
 - [x] Peer-to-peer architecture (any node can serve and connect)
-- [x] Named peer configuration (`latis prompt local "Hello"`)
-- [x] AgentCard discovery via `latis discover`
+- [x] Named peer configuration (`tndrl prompt local "Hello"`)
+- [x] AgentCard discovery via `tndrl discover`
 - [x] Pluggable LLM providers (echo, ollama) - requires explicit `--llm-provider`
 - [x] Example configs: `examples/echo.yaml`, `examples/ollama.yaml`
-- [x] Deleted `cmd/latis-unit/` (merged into `cmd/latis/`)
+- [x] Deleted `cmd/tndrl-unit/` (merged into `cmd/tndrl/`)
 - [x] Updated README.md, CLAUDE.md with new architecture
 - [x] Created docs/configuration.md and docs/cli.md
 
@@ -110,14 +110,14 @@ Core use case: "turn loose" an AI agent in a sandboxed container where it can it
 - [x] Deleted unused `pkg/protocol` and `pkg/provisioner` stubs
 - [x] Deleted `docs/design/execution-model.md` (contained outdated examples)
 - [x] **Breaking**: Renamed `UnitState` → `NodeState` in proto
-- [x] **Breaking**: Changed SPIFFE URIs from `spiffe://latis/unit/*` to `spiffe://latis/node/*`
+- [x] **Breaking**: Changed SPIFFE URIs from `spiffe://tndrl/unit/*` to `spiffe://tndrl/node/*`
 - [x] Renamed `UnitIdentity` → `NodeIdentity` (kept deprecated alias)
 - [x] Fixed undefined `pki.CmdrIdentity` bug in tests
 
 ### Structured Logging (PR #23 - merged)
-- [x] Created `cmd/latis/logging.go` with `setupLogger()` for slog configuration
+- [x] Created `cmd/tndrl/logging.go` with `setupLogger()` for slog configuration
 - [x] Added `--log-level` flag (debug, info, warn, error) and `-v`/`--verbose` shortcut
-- [x] Migrated all `log.Printf/Println` to structured `slog` calls in cmd/latis/
+- [x] Migrated all `log.Printf/Println` to structured `slog` calls in cmd/tndrl/
 - [x] Added logging to `pkg/control/` (RPC handlers, state transitions)
 - [x] Added logging to `pkg/a2aexec/` (message execution, errors, cancellation)
 - [x] Added logging to `pkg/llm/ollama.go` (API requests, errors)
@@ -149,7 +149,7 @@ Core use case: "turn loose" an AI agent in a sandboxed container where it can it
    - QEMU driver (stretch)
 
 3. **Workspace images**
-   - Base image with latis + shell tools
+   - Base image with tndrl + shell tools
    - Language-specific variants (go, python, node)
 
 4. **Deferred: Dynamic peer discovery**
@@ -160,7 +160,7 @@ Core use case: "turn loose" an AI agent in a sandboxed container where it can it
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                         latis node                          │
+│                         tndrl node                          │
 │                                                             │
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────────┐ │
 │  │   A2A       │    │   Control   │    │      LLM        │ │
@@ -197,4 +197,4 @@ QUIC Connection (peer ↔ peer)
 - **Separate gRPC servers**: Each stream type gets its own gRPC server for isolation.
 - **Connection pooling**: MuxDialer reuses QUIC connections, opens new streams as needed.
 - **A2A protocol**: Use a2a-go's implementation rather than custom protocol. Interoperability with broader agent ecosystem.
-- **Control protocol**: Latis-specific for lifecycle management. Not part of A2A spec.
+- **Control protocol**: Tndrl-specific for lifecycle management. Not part of A2A spec.

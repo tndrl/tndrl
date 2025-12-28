@@ -1,4 +1,4 @@
-// Package a2aexec implements the A2A AgentExecutor interface for Latis nodes.
+// Package a2aexec implements the A2A AgentExecutor interface for Tndrl nodes.
 package a2aexec
 
 import (
@@ -10,10 +10,10 @@ import (
 	"github.com/a2aproject/a2a-go/a2asrv"
 	"github.com/a2aproject/a2a-go/a2asrv/eventqueue"
 
-	"github.com/shanemcd/latis/pkg/llm"
+	"github.com/shanemcd/tndrl/pkg/llm"
 )
 
-// Executor implements a2asrv.AgentExecutor for Latis nodes.
+// Executor implements a2asrv.AgentExecutor for Tndrl nodes.
 // It handles incoming A2A messages and produces responses using an LLM provider.
 type Executor struct {
 	// Provider is the LLM provider to use. If nil, an echo provider is used.

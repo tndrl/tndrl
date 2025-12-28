@@ -1,4 +1,4 @@
-// Package pki provides certificate authority and certificate management for Latis.
+// Package pki provides certificate authority and certificate management for Tndrl.
 package pki
 
 import (
@@ -36,8 +36,8 @@ func GenerateCA() (*CA, error) {
 	template := &x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			Organization: []string{"Latis"},
-			CommonName:   "Latis CA",
+			Organization: []string{"Tndrl"},
+			CommonName:   "Tndrl CA",
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(10, 0, 0), // 10 years

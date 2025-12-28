@@ -21,7 +21,7 @@ func ServerTLSConfig(cert *Cert, ca *CA) (*tls.Config, error) {
 		Certificates: []tls.Certificate{tlsCert},
 		ClientAuth:   tls.RequireAndVerifyClientCert,
 		ClientCAs:    caPool,
-		NextProtos:   []string{"latis"},
+		NextProtos:   []string{"tndrl"},
 		MinVersion:   tls.VersionTLS13,
 	}, nil
 }
@@ -41,7 +41,7 @@ func ClientTLSConfig(cert *Cert, ca *CA, serverName string) (*tls.Config, error)
 		Certificates: []tls.Certificate{tlsCert},
 		RootCAs:      caPool,
 		ServerName:   serverName,
-		NextProtos:   []string{"latis"},
+		NextProtos:   []string{"tndrl"},
 		MinVersion:   tls.VersionTLS13,
 	}, nil
 }

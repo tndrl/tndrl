@@ -1,6 +1,6 @@
 # Configuration Reference
 
-Latis uses a unified configuration system where CLI flags, environment variables, and config files all derive from the same schema.
+Tndrl uses a unified configuration system where CLI flags, environment variables, and config files all derive from the same schema.
 
 ## Precedence
 
@@ -13,8 +13,8 @@ When the same option is specified in multiple places, higher-precedence sources 
 Config files use YAML format. Specify with `-c` or `--config`:
 
 ```bash
-latis serve -c config.yaml
-latis serve --config=/etc/latis/config.yaml
+tndrl serve -c config.yaml
+tndrl serve --config=/etc/tndrl/config.yaml
 ```
 
 ### Example Config
@@ -46,7 +46,7 @@ llm:
   url: http://localhost:11434/v1
 
 pki:
-  dir: ~/.latis/pki
+  dir: ~/.tndrl/pki
   init: true
 
 peers:
@@ -81,7 +81,7 @@ Log verbosity level. Valid values: `debug`, `info`, `warn`, `error`. Default: `i
 
 ### server
 
-Server configuration for daemon mode (`latis serve`).
+Server configuration for daemon mode (`tndrl serve`).
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -98,7 +98,7 @@ Agent identity and capabilities, exposed via A2A AgentCard.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `name` | string | `latis-agent` | Agent name |
+| `name` | string | `tndrl-agent` | Agent name |
 | `description` | string | `""` | Agent description |
 | `streaming` | bool | `true` | Whether agent supports streaming |
 | `skills` | array | `[]` | List of agent skills |
@@ -236,12 +236,12 @@ PKI (certificate) configuration.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `dir` | string | `~/.latis/pki` | PKI directory path |
+| `dir` | string | `~/.tndrl/pki` | PKI directory path |
 | `init` | bool | `false` | Auto-initialize PKI if missing |
 
 ```yaml
 pki:
-  dir: ~/.latis/pki
+  dir: ~/.tndrl/pki
   init: true
 ```
 
@@ -265,35 +265,35 @@ peers:
 Usage:
 ```bash
 # Use name from config
-latis ping backend
+tndrl ping backend
 
 # Or use address directly
-latis ping backend.local:4433
+tndrl ping backend.local:4433
 ```
 
 ## Environment Variables
 
-All config options can be set via environment variables with `LATIS_` prefix:
+All config options can be set via environment variables with `TNDRL_` prefix:
 
 | Config Path | Environment Variable |
 |-------------|---------------------|
-| `logLevel` | `LATIS_LOG_LEVEL` |
-| `server.addr` | `LATIS_ADDR` |
-| `agent.name` | `LATIS_AGENT_NAME` |
-| `agent.description` | `LATIS_AGENT_DESCRIPTION` |
-| `agent.streaming` | `LATIS_AGENT_STREAMING` |
-| `llm.provider` | `LATIS_LLM_PROVIDER` |
-| `llm.model` | `LATIS_LLM_MODEL` |
-| `llm.url` | `LATIS_LLM_URL` |
-| `pki.dir` | `LATIS_PKI_DIR` |
-| `pki.caCert` | `LATIS_CA_CERT` |
-| `pki.caKey` | `LATIS_CA_KEY` |
-| `pki.cert` | `LATIS_CERT` |
-| `pki.key` | `LATIS_KEY` |
-| `pki.init` | `LATIS_INIT_PKI` |
+| `logLevel` | `TNDRL_LOG_LEVEL` |
+| `server.addr` | `TNDRL_ADDR` |
+| `agent.name` | `TNDRL_AGENT_NAME` |
+| `agent.description` | `TNDRL_AGENT_DESCRIPTION` |
+| `agent.streaming` | `TNDRL_AGENT_STREAMING` |
+| `llm.provider` | `TNDRL_LLM_PROVIDER` |
+| `llm.model` | `TNDRL_LLM_MODEL` |
+| `llm.url` | `TNDRL_LLM_URL` |
+| `pki.dir` | `TNDRL_PKI_DIR` |
+| `pki.caCert` | `TNDRL_CA_CERT` |
+| `pki.caKey` | `TNDRL_CA_KEY` |
+| `pki.cert` | `TNDRL_CERT` |
+| `pki.key` | `TNDRL_KEY` |
+| `pki.init` | `TNDRL_INIT_PKI` |
 
 ```bash
-LATIS_LLM_PROVIDER=ollama LATIS_LLM_MODEL=llama3.2 latis serve
+TNDRL_LLM_PROVIDER=ollama TNDRL_LLM_MODEL=llama3.2 tndrl serve
 ```
 
 ## CLI Flags
@@ -301,7 +301,7 @@ LATIS_LLM_PROVIDER=ollama LATIS_LLM_MODEL=llama3.2 latis serve
 CLI flags use `--section-field` format:
 
 ```bash
-latis serve --server-addr=:4433 --llm-provider=ollama --llm-model=llama3.2
+tndrl serve --server-addr=:4433 --llm-provider=ollama --llm-model=llama3.2
 ```
 
 See [CLI Reference](./cli.md) for all available flags.
@@ -314,5 +314,5 @@ All three sources can be combined:
 # Base config from file
 # Override LLM model from environment
 # Override address from CLI
-LATIS_LLM_MODEL=mistral latis serve -c config.yaml --server-addr=:8443
+TNDRL_LLM_MODEL=mistral tndrl serve -c config.yaml --server-addr=:8443
 ```

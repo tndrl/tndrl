@@ -1,4 +1,4 @@
-module github.com/shanemcd/latis
+module github.com/shanemcd/tndrl
 
 go 1.25
 

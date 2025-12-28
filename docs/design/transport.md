@@ -1,14 +1,14 @@
 # Transport
 
-Network transport layer for Latis node communication.
+Network transport layer for Tndrl node communication.
 
 ## Current Implementation
 
-Latis uses QUIC with mTLS for all node-to-node communication. This is implemented in `pkg/transport/quic/`.
+Tndrl uses QUIC with mTLS for all node-to-node communication. This is implemented in `pkg/transport/quic/`.
 
 ```
 ┌────────────┐                    ┌────────────┐
-│   latis    │                    │   latis    │
+│   tndrl    │                    │   tndrl    │
 │   (client) │                    │   (server) │
 └─────┬──────┘                    └─────┬──────┘
       │                                 │
@@ -26,7 +26,7 @@ Latis uses QUIC with mTLS for all node-to-node communication. This is implemente
 Manages outbound connections with connection pooling.
 
 ```go
-import quictransport "github.com/shanemcd/latis/pkg/transport/quic"
+import quictransport "github.com/shanemcd/tndrl/pkg/transport/quic"
 
 // Create dialer with TLS config
 muxDialer := quictransport.NewMuxDialer(tlsConfig, nil)
@@ -46,7 +46,7 @@ a2aDialer := muxDialer.A2ADialer()
 Accepts inbound connections and routes streams by type.
 
 ```go
-import quictransport "github.com/shanemcd/latis/pkg/transport/quic"
+import quictransport "github.com/shanemcd/tndrl/pkg/transport/quic"
 
 // Start listener
 listener, err := quictransport.ListenMux(addr, tlsConfig, nil)

@@ -11,7 +11,7 @@ Multiplexed QUIC transport for gRPC with typed streams.
 
 ## Architecture
 
-Latis uses multiplexed QUIC streams to separate Control and A2A protocols:
+Tndrl uses multiplexed QUIC streams to separate Control and A2A protocols:
 
 ```
 QUIC Connection
@@ -30,7 +30,7 @@ Each stream type gets its own gRPC server/client, providing protocol isolation.
 ### Server (MuxListener)
 
 ```go
-import quictransport "github.com/shanemcd/latis/pkg/transport/quic"
+import quictransport "github.com/shanemcd/tndrl/pkg/transport/quic"
 
 // Start multiplexed listener
 listener, err := quictransport.ListenMux(addr, tlsConfig, nil)
@@ -41,7 +41,7 @@ defer listener.Close()
 
 // Serve Control protocol on Control streams
 controlServer := grpc.NewServer()
-latisv1.RegisterControlServiceServer(controlServer, controlHandler)
+tndrlv1.RegisterControlServiceServer(controlServer, controlHandler)
 go controlServer.Serve(listener.ControlListener())
 
 // Serve A2A protocol on A2A streams
@@ -53,7 +53,7 @@ go a2aServer.Serve(listener.A2AListener())
 ### Client (MuxDialer)
 
 ```go
-import quictransport "github.com/shanemcd/latis/pkg/transport/quic"
+import quictransport "github.com/shanemcd/tndrl/pkg/transport/quic"
 
 // Create multiplexed dialer (reuses QUIC connections)
 muxDialer := quictransport.NewMuxDialer(tlsConfig, nil)
@@ -65,7 +65,7 @@ controlConn, err := grpc.NewClient(
     grpc.WithContextDialer(muxDialer.ControlDialer()),
     grpc.WithTransportCredentials(insecure.NewCredentials()),
 )
-controlClient := latisv1.NewControlServiceClient(controlConn)
+controlClient := tndrlv1.NewControlServiceClient(controlConn)
 
 // Connect to A2A service (reuses same QUIC connection)
 a2aConn, err := grpc.NewClient(

@@ -6,7 +6,7 @@ llm:
   url: http://localhost:11434/v1
 
 pki:
-  dir: ~/.latis/pki
+  dir: ~/.tndrl/pki
   init: true
 
 peers:

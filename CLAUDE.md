@@ -2,17 +2,17 @@
 
 Guidance for Claude Code when working in this repository.
 
-## What is Latis?
+## What is Tndrl?
 
 A control plane for distributed AI agents built on the [A2A protocol](https://a2a-protocol.org/).
 
-Latis provides a unified interface for orchestrating AI agents running across multiple machines, containers, and environments. It uses a **peer-to-peer** model where any node can both serve requests and connect to other nodes.
+Tndrl provides a unified interface for orchestrating AI agents running across multiple machines, containers, and environments. It uses a **peer-to-peer** model where any node can both serve requests and connect to other nodes.
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                         latis node                          │
+│                         tndrl node                          │
 │                                                             │
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────────┐ │
 │  │   A2A       │    │   Control   │    │      LLM        │ │
@@ -35,14 +35,14 @@ Latis provides a unified interface for orchestrating AI agents running across mu
 
 | Component | Purpose | Details |
 |-----------|---------|---------|
-| **latis node** | Unified daemon/client | Runs `latis serve` or connects as client |
+| **tndrl node** | Unified daemon/client | Runs `tndrl serve` or connects as client |
 | **A2A Server** | Agent communication | [A2A protocol](https://a2a-protocol.org/) for prompts, tasks |
 | **Control Server** | Lifecycle management | Ping, status, shutdown |
 | **LLM Provider** | Language model backend | echo, ollama (pluggable) |
 
 ## Key Design Decisions
 
-- **Single binary** — one `latis` binary for all roles (daemon and client)
+- **Single binary** — one `tndrl` binary for all roles (daemon and client)
 - **Peer-to-peer** — any node can both serve and connect to other nodes
 - **A2A protocol alignment** — agent communication follows the [A2A spec](https://a2a-protocol.org/)
 - **Go** — single binary, easy cross-compilation, good concurrency
@@ -53,8 +53,8 @@ Latis provides a unified interface for orchestrating AI agents running across mu
 ## Code Structure
 
 ```
-latis/
-├── cmd/latis/           # unified CLI (serve, ping, prompt, etc.)
+tndrl/
+├── cmd/tndrl/           # unified CLI (serve, ping, prompt, etc.)
 │   ├── main.go          # entry point, Kong setup
 │   ├── cli.go           # CLI struct, config types, loading
 │   ├── serve.go         # daemon mode
@@ -63,14 +63,14 @@ latis/
 ├── examples/            # example config files
 │   ├── echo.yaml        # testing with echo provider
 │   └── ollama.yaml      # production with Ollama
-├── gen/go/latis/v1/     # generated protobuf/gRPC code
+├── gen/go/tndrl/v1/     # generated protobuf/gRPC code
 ├── pkg/
 │   ├── pki/             # CA and certificate management
 │   ├── transport/quic/  # multiplexed QUIC transport
 │   ├── control/         # ControlService implementation
 │   ├── a2aexec/         # A2A executor (agent logic)
 │   └── llm/             # LLM provider abstraction
-├── proto/latis/v1/      # protobuf definitions
+├── proto/tndrl/v1/      # protobuf definitions
 ├── buf.yaml             # buf configuration
 └── buf.gen.yaml         # code generation config
 ```
@@ -79,15 +79,15 @@ latis/
 
 ```bash
 # Terminal 1: Start a node as a daemon
-latis serve -c examples/echo.yaml
+tndrl serve -c examples/echo.yaml
 
 # Terminal 2: Interact with the node (using named peer from config)
-latis prompt -c examples/echo.yaml local "Hello!"
-latis status -c examples/echo.yaml local
-latis discover -c examples/echo.yaml local
+tndrl prompt -c examples/echo.yaml local "Hello!"
+tndrl status -c examples/echo.yaml local
+tndrl discover -c examples/echo.yaml local
 ```
 
-PKI files are stored in `~/.latis/pki/`. See [pkg/pki/README.md](./pkg/pki/README.md) for details.
+PKI files are stored in `~/.tndrl/pki/`. See [pkg/pki/README.md](./pkg/pki/README.md) for details.
 
 ## Documentation
 
