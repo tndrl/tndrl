@@ -213,12 +213,6 @@ tndrl status -c examples/echo.yaml local
 - [A2A Alignment](./docs/design/a2a-alignment.md)
 - [Protocol](./docs/design/protocol.md)
 
-## Name
-
-Tndrl: from "lattice" — a structure of interconnected points. Agents connected across a distributed mesh.
-
-Or if you prefer acronyms: **L**inked **A**gent **T**ransport & **I**nterconnection **S**ystem.
-
 ## License
 
 [Apache-2.0](LICENSE)
